@@ -780,7 +780,7 @@ func (this *GameUpdater) svnCheckout() {
 	}
 
 	ExecSVNCmd("svn", "cleanup", this.config.ProjectName)
-	ExecSVNCmd("svn", "update", "--force", this.config.ProjectName)
+	ExecSVNCmd("svn", "update", "--force", this.config.ProjectName, "--accept", "theirs-full")
 	this.sysChan <- "ok"
 }
 
