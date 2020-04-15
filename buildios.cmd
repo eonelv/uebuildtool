@@ -1,0 +1,1 @@
+uebuildtool.exe -Release=false -Patch=true -targetPlatform=iOS -BuildApp=true
