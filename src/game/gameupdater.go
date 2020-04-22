@@ -743,6 +743,8 @@ func (this *GameUpdater) buildApp() bool {
 	if ok, _ := PathExists(this.outAppFileName); ok {
 		LogInfo("**********buildApp Success!**********")
 		return true
+	} else {
+		this.result |= 0x02
 	}
 
 	LogInfo("**********buildApp Complete!**********")
@@ -830,19 +832,19 @@ func (this *GameUpdater) sendReport() {
 	msgtemp = fmt.Sprintf("%s:%s-%s. 参数: 外网包=%v, 发布版=%v.", ip, this.config.ProjectName, this.config.targetPlatform,
 		this.config.IsPatch, this.config.IsRelease)
 	if this.outAppFileName != "" {
-		msgtemp += fmt.Sprintf(" App:%s", this.outAppFileName[len(this.config.BuilderHome)+1:])
+		msgtemp += fmt.Sprintf(" [App]:%s", this.outAppFileName[len(this.config.BuilderHome)+1:])
 	}
 	if this.outZipFileName != "" {
-		msgtemp += fmt.Sprintf(" zip:%s", this.outZipFileName[len(this.config.BuilderHome)+1:])
+		msgtemp += fmt.Sprintf(" [Zip]:%s", this.outZipFileName[len(this.config.BuilderHome)+1:])
 	} else {
-		msgtemp += fmt.Sprintf(" zip:%s", "没有")
+		msgtemp += fmt.Sprintf(" [Zip]:%s", "没有")
 	}
 
 	if this.result&0x01 == 0x01 {
 		msgtemp += fmt.Sprintf(" Error", "Cook失败")
 	} else if this.result&0x02 == 0x02 {
 		msgtemp += fmt.Sprintf(" Error", "App失败")
-	} else if this.result&0x02 == 0x04 {
+	} else if this.result&0x04 == 0x04 {
 		msgtemp += fmt.Sprintf(" Error", "Zip失败")
 	}
 
