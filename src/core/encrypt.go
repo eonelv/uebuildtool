@@ -36,33 +36,31 @@ func (this *Encrypt) InitEncrypt(a1, b1, c1, fst1, a2, b2, c2, fst2 int) {
 }
 
 func (this *Encrypt) Encrypt(buff []byte, begin int, length int, move bool) {
-	/*
-		defer func() {
-			if x := recover(); x != nil {
-				LogError("Encrypt error:", x)
-			}
-		}()
+	defer func() {
+		if x := recover(); x != nil {
+			LogError("Encrypt error:", x)
+		}
+	}()
 
-		oldPos1 := this.Pos1
-		oldPos2 := this.Pos2
-		for i := begin; i < begin+length; i++ {
-			buff[i] ^= this.enCode.BufferEncrypt1[this.Pos1]
-			buff[i] ^= this.enCode.BufferEncrypt2[this.Pos2]
-			this.Pos1++
-			if this.Pos1 >= 256 {
-				this.Pos1 = 0
-				this.Pos2++
-				if this.Pos2 >= 256 {
-					this.Pos2 = 0
-				}
+	oldPos1 := this.Pos1
+	oldPos2 := this.Pos2
+	for i := begin; i < begin+length; i++ {
+		buff[i] ^= this.enCode.BufferEncrypt1[this.Pos1]
+		buff[i] ^= this.enCode.BufferEncrypt2[this.Pos2]
+		this.Pos1++
+		if this.Pos1 >= 256 {
+			this.Pos1 = 0
+			this.Pos2++
+			if this.Pos2 >= 256 {
+				this.Pos2 = 0
 			}
 		}
+	}
 
-		if !move {
-			this.Pos1 = oldPos1
-			this.Pos2 = oldPos2
-		}
-	*/
+	if !move {
+		this.Pos1 = oldPos1
+		this.Pos2 = oldPos2
+	}
 }
 
 func (this *Encrypt) Reset() {

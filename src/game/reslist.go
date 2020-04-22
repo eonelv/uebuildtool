@@ -64,7 +64,14 @@ func (this *Reslist) Flush(version int64) error {
 		return err
 	}
 	//跟随外网包一起发布到资源服务器
-	err = WriteFile(Bytes, fmt.Sprintf("%s/reslist_%d.json", this.ZipSourcePakPath, version))
+	OutBytes := CloneBytes(Bytes)
+	copy(Bytes, OutBytes)
+	//加密
+	encrypt := &Encrypt{}
+	encrypt.InitEncrypt(183, 46, 15, 43, 0, 88, 232, 90)
+	encrypt.Encrypt(OutBytes, 0, len(OutBytes), true)
+
+	err = WriteFile(OutBytes, fmt.Sprintf("%s/reslist_%d.json", this.ZipSourcePakPath, version))
 	if err != nil {
 		LogError("Writereslist.json Error!", err)
 		return err

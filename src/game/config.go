@@ -38,6 +38,9 @@ type Config struct {
 	ProjectHomePath string
 	ProjectName     string
 
+	JsonHome string
+	LuaHome  string
+
 	CookPlatformType string //Android_ETC2
 
 	//"外网包"
@@ -112,6 +115,9 @@ func (this *Config) readConfig() error {
 
 	this.ProjectHomePath = fmt.Sprintf("%s/%s", this.BuilderHome, this.ProjectName)
 	this.ProjectHomePath = strings.ReplaceAll(this.ProjectHomePath, `\`, "/")
+
+	this.JsonHome = fmt.Sprintf("%s/Content/json", this.ProjectHomePath)
+	this.LuaHome = fmt.Sprintf("%s/Content/Script", this.ProjectHomePath)
 
 	//外部传入
 	this.IsRelease = false

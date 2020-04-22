@@ -55,9 +55,6 @@ type GameUpdater struct {
 	today  string
 	numCPU int
 
-	//是否第一次build
-	isFirst bool
-
 	//是否需要加密Pak
 	isEncryptPak bool
 
@@ -130,12 +127,6 @@ func (this *GameUpdater) DoUpdate() {
 	//1. 更新SVN
 	this.checkOut()
 
-	if this.isFirst {
-		//this.buildFirst()
-	}
-	//在C++代码被修改之后，特别是蓝图父类，会丢失蓝图，必须重新check一次代码，所以更新完马上编译
-	this.buildFirst()
-
 	SVNDatabase := &SVNDatabase{}
 	SVNDatabase.ProjectPath = this.config.ProjectHomePath
 	this.version = SVNDatabase.ReadSVNVersion()
@@ -150,7 +141,13 @@ func (this *GameUpdater) DoUpdate() {
 	//6. 写入代码版本号到C++（这里还需要读取Sqlite的功能，最后再加吧）
 	this.writeVersionCPP()
 
+	EncryptAndCompressAll(this.config.JsonHome)
+	EncryptAndCompressAll(this.config.LuaHome)
+
 	if this.config.IsApp {
+		//在C++代码被修改之后，特别是蓝图父类，会丢失蓝图，必须重新check一次代码，所以更新完马上编译
+		//这种情况必须要重编App
+		this.buildFirst()
 		//7. 生成App
 		okApp := this.buildApp()
 		if !okApp {
@@ -408,7 +405,11 @@ func (this *GameUpdater) go_CopyFile() {
 	for {
 		select {
 		case s := <-this.chanWattingCopyFileName:
-			CopyFile(s.sourceParentPath+"/"+s.relName, this.config.ResOutputContentPath+"/"+s.relName)
+			if strings.HasSuffix(s.relName, ".json") || strings.HasSuffix(s.relName, ".lua") {
+				CopyFileAndCompress(s.sourceParentPath+"/"+s.relName, this.config.ResOutputContentPath+"/"+s.relName)
+			} else {
+				CopyFile(s.sourceParentPath+"/"+s.relName, this.config.ResOutputContentPath+"/"+s.relName)
+			}
 		case <-time.After(1 * time.Second):
 			return
 		}
@@ -514,9 +515,9 @@ func (this *GameUpdater) calcSingle() {
 func (this *GameUpdater) readAll() {
 	this.readFiles(this.config.CookedPath)
 	LogInfo("**********Check Cooked Path End**********", this.config.CookedPath)
-	this.readFiles(this.config.ProjectHomePath + "/Content/json")
-	LogInfo("**********Check Json Path End**********", this.config.ProjectHomePath)
-	this.readFiles(this.config.ProjectHomePath + "/Content/Script")
+	this.readFiles(this.config.JsonHome)
+	LogInfo("**********Check Json Path End**********", this.config.JsonHome)
+	this.readFiles(this.config.LuaHome)
 	//this.isReadAll = true
 }
 
@@ -776,7 +777,6 @@ func (this *GameUpdater) svnCheckout() {
 	ok, _ := PathExists(this.config.ProjectName)
 	if !ok {
 		ExecSVNCmd("svn", "checkout", this.config.svnCode, this.config.ProjectName)
-		this.isFirst = true
 	}
 
 	ExecSVNCmd("svn", "cleanup", this.config.ProjectName)
@@ -806,6 +806,8 @@ func (this *GameUpdater) clear() {
 	os.RemoveAll(this.config.ResOutputContentPath)
 	os.RemoveAll(this.config.tempPakPath)
 	os.RemoveAll(this.config.ZipSourcePath)
+	os.RemoveAll(this.config.JsonHome)
+	os.RemoveAll(this.config.LuaHome)
 
 	os.Remove(this.projectEncryptIniPath)
 	os.Remove(this.versionCppFilePath)

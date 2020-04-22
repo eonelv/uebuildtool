@@ -1,16 +1,15 @@
 package core
 
 import (
-	"errors"
-	"reflect"
 	SQL "database/sql"
 	"database/sql/driver"
+	"errors"
 	"fmt"
+	"reflect"
 	"strconv"
-	"time"
 	"strings"
+	"time"
 )
-
 
 var errNilPtr = errors.New("destination pointer is nil") // embedded in descriptive error
 func ConvertAssign(dest, src interface{}) error {
@@ -65,13 +64,13 @@ func ConvertAssign(dest, src interface{}) error {
 			if d == nil {
 				return errNilPtr
 			}
-			*d = cloneBytes(s)
+			*d = CloneBytes(s)
 			return nil
 		case *[]byte:
 			if d == nil {
 				return errNilPtr
 			}
-			*d = cloneBytes(s)
+			*d = CloneBytes(s)
 			return nil
 		case *SQL.RawBytes:
 			if d == nil {
@@ -116,9 +115,9 @@ func ConvertAssign(dest, src interface{}) error {
 		sv = reflect.ValueOf(src)
 		switch sv.Kind() {
 		case reflect.Bool,
-		reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64,
-		reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64,
-		reflect.Float32, reflect.Float64:
+			reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64,
+			reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64,
+			reflect.Float32, reflect.Float64:
 			*d = fmt.Sprintf("%v", src)
 			return nil
 		}
@@ -126,9 +125,9 @@ func ConvertAssign(dest, src interface{}) error {
 		sv = reflect.ValueOf(src)
 		switch sv.Kind() {
 		case reflect.Bool,
-		reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64,
-		reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64,
-		reflect.Float32, reflect.Float64:
+			reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64,
+			reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64,
+			reflect.Float32, reflect.Float64:
 			*d = []byte(fmt.Sprintf("%v", src))
 			return nil
 		}
@@ -136,9 +135,9 @@ func ConvertAssign(dest, src interface{}) error {
 		sv = reflect.ValueOf(src)
 		switch sv.Kind() {
 		case reflect.Bool,
-		reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64,
-		reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64,
-		reflect.Float32, reflect.Float64:
+			reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64,
+			reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64,
+			reflect.Float32, reflect.Float64:
 			*d = SQL.RawBytes(fmt.Sprintf("%v", src))
 			return nil
 		}
@@ -210,7 +209,7 @@ func ConvertAssign(dest, src interface{}) error {
 
 	return fmt.Errorf("unsupported driver -> Scan pair: %T -> %T", src, dest)
 }
-func cloneBytes(b []byte) []byte {
+func CloneBytes(b []byte) []byte {
 	if b == nil {
 		return nil
 	} else {

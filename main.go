@@ -3,6 +3,7 @@ package main
 
 import (
 	. "game"
+	//. "file"
 	"runtime"
 )
 
@@ -15,6 +16,6 @@ func main() {
 	runtime.GOMAXPROCS(runtime.NumCPU())
 	var gameUpdater *GameUpdater = &GameUpdater{}
 	gameUpdater.DoUpdate()
-	//f := &FileSpliter{}
-	//f.Execute(`E:\golang\uebuildtool\APackages\1`, `E:\golang\uebuildtool\APackages\2`)
+	//ReadJsonFile(`E:\golang\uebuildtool\dynamiclist.json`)
+	//CopyFileAndCompress(`C:\UE4\Projects\ENGGame\Content\json\dynamiclist.json`, `E:\golang\uebuildtool\dynamiclist.json`)
 }

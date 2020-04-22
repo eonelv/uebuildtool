@@ -3,9 +3,12 @@ package file
 import (
 	"archive/zip"
 	"bufio"
+	"bytes"
+	"compress/zlib"
 	. "core"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -191,6 +194,78 @@ func CopyFile(SrcFile string, DestFile string) error {
 			return err
 		}
 	}
+	return err
+}
+
+func ReadJsonFile(SrcFile string) {
+	datas, err := ioutil.ReadFile(SrcFile)
+	if err != nil {
+		return
+	}
+
+	b := bytes.NewReader(datas)
+	var out bytes.Buffer
+	r, _ := zlib.NewReader(b)
+	io.Copy(&out, r)
+
+	datas = out.Bytes()
+	encrypt := &Encrypt{}
+	encrypt.InitEncrypt(183, 46, 15, 43, 0, 88, 232, 90)
+	encrypt.Encrypt(datas, 0, len(datas), true)
+	LogDebug(string(datas[:]))
+}
+
+func EncryptFile(SrcFile string) error {
+	datas, err := ioutil.ReadFile(SrcFile)
+	if err != nil {
+		return err
+	}
+
+	//加密
+	encrypt := &Encrypt{}
+	encrypt.InitEncrypt(183, 46, 15, 43, 0, 88, 232, 90)
+	encrypt.Encrypt(datas, 0, len(datas), true)
+
+	os.Remove(SrcFile)
+
+	//创建目标文件
+	fileWrite, err := os.OpenFile(SrcFile, os.O_WRONLY|os.O_CREATE, os.ModePerm)
+
+	if err != nil {
+		fmt.Println("Create err:", err)
+		return err
+	}
+	defer fileWrite.Close()
+	fileWrite.Write(datas)
+	return err
+}
+
+func CopyFileAndCompress(SrcFile string, DestFile string) error {
+	DestFile = strings.ReplaceAll(DestFile, "\\", "/")
+	index := strings.LastIndex(DestFile, "/")
+	ParentPath := DestFile[:index]
+	os.MkdirAll(ParentPath, os.ModePerm)
+
+	datas, err := ioutil.ReadFile(SrcFile)
+	if err != nil {
+		return err
+	}
+
+	var in bytes.Buffer
+
+	writer := zlib.NewWriter(&in)
+	writer.Write(datas)
+	writer.Close()
+
+	//创建目标文件
+	fileWrite, err := os.OpenFile(DestFile, os.O_WRONLY|os.O_CREATE, os.ModePerm)
+
+	if err != nil {
+		fmt.Println("Create err:", err)
+		return err
+	}
+	defer fileWrite.Close()
+	fileWrite.Write(in.Bytes())
 	return err
 }
 
