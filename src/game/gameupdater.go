@@ -123,7 +123,9 @@ func (this *GameUpdater) DoUpdate() {
 		LogError("Build Failed time:", time.Now())
 		return
 	}
+	this.clear()
 
+	this.config.BuildPath()
 	//1. 更新SVN
 	this.checkOut()
 
@@ -147,7 +149,11 @@ func (this *GameUpdater) DoUpdate() {
 	if this.config.IsApp {
 		//在C++代码被修改之后，特别是蓝图父类，会丢失蓝图，必须重新check一次代码，所以更新完马上编译
 		//这种情况必须要重编App
-		this.buildFirst()
+		if !this.config.IsDebugTool {
+			LogInfo("Begin Build First!")
+			this.buildFirst()
+		}
+
 		//7. 生成App
 		okApp := this.buildApp()
 		if !okApp {
@@ -535,7 +541,6 @@ func (this *GameUpdater) readFiles(pathname string) {
 			this.readFiles(pathname + "/" + fi.Name())
 		} else {
 			Name := pathname + "/" + fi.Name()
-			LogDebug("begin calc", Name)
 			this.chanFileName <- Name
 		}
 	}
@@ -626,9 +631,19 @@ func (this *GameUpdater) writeVersionCPP() {
 }
 
 func (this *GameUpdater) buildApp() bool {
+	defer func() {
+		if err := recover(); err != nil {
+			LogError("Build App Error:", err) //这里的err其实就是panic传入的内容
+			this.result |= 0x02
+		}
+	}()
+
 	LogInfo("**********Begin buildApp**********")
 	var tempBuildFile string = fmt.Sprintf("%s/TempBuild.cmd", this.config.BuilderHome)
 	var achieveDir string
+
+	defer os.Remove(tempBuildFile)
+
 	if this.config.targetPlatform == "Android" {
 		achieveDir = fmt.Sprintf("%s/%s_%s", this.config.OutputPath, this.config.targetPlatform, this.config.cookflavor)
 
@@ -668,10 +683,6 @@ func (this *GameUpdater) buildApp() bool {
 			cmdString += a
 		}
 		WriteFile([]byte(cmdString), tempBuildFile)
-		err := ExecApp(tempBuildFile)
-		if err != nil {
-			LogError("Build App failed.", err.Error())
-		}
 	} else {
 		achieveDir = fmt.Sprintf("%s/%s", this.config.OutputPath, this.config.targetPlatform)
 
@@ -709,10 +720,12 @@ func (this *GameUpdater) buildApp() bool {
 			cmdString += a
 		}
 		WriteFile([]byte(cmdString), tempBuildFile)
-		err := ExecApp(tempBuildFile)
-		if err != nil {
-			LogError("Build App failed.", err.Error())
-		}
+	}
+	LogDebug("waitting Remove ", achieveDir)
+	defer os.RemoveAll(achieveDir)
+	err := ExecApp(tempBuildFile)
+	if err != nil {
+		LogError("Build App failed.", err.Error())
 	}
 	zipFilePath := fmt.Sprintf("%s/%s", this.config.OutputPath, this.today)
 
@@ -736,9 +749,6 @@ func (this *GameUpdater) buildApp() bool {
 			CopyFile(achieveDir+"/"+fi.Name(), this.outAppFileName)
 		}
 	}
-
-	os.Remove(tempBuildFile)
-	os.RemoveAll(achieveDir)
 
 	if ok, _ := PathExists(this.outAppFileName); ok {
 		LogInfo("**********buildApp Success!**********")
@@ -814,14 +824,6 @@ func (this *GameUpdater) clear() {
 	os.Remove(this.projectEncryptIniPath)
 	os.Remove(this.versionCppFilePath)
 	os.Remove(this.sourceGameConfigPath)
-
-	timePassed := time.Now().Unix() - this.beginTime.Unix()
-
-	LogInfo("---------------------------------")
-	LogInfo("-------Build Complete!!!---------")
-	LogInfo("-------time:", time.Unix(time.Now().Unix(), 0).Format("2006-01-02 15:04:05"))
-	LogInfo("-------Total seconds:", timePassed)
-	LogInfo("---------------------------------")
 }
 
 func (this *GameUpdater) sendReport() {
@@ -841,11 +843,11 @@ func (this *GameUpdater) sendReport() {
 	}
 
 	if this.result&0x01 == 0x01 {
-		msgtemp += fmt.Sprintf(" Error", "Cook失败")
+		msgtemp += fmt.Sprintf(" Error:%s", "Cook失败")
 	} else if this.result&0x02 == 0x02 {
-		msgtemp += fmt.Sprintf(" Error", "App失败")
+		msgtemp += fmt.Sprintf(" Error:%s", "App失败")
 	} else if this.result&0x04 == 0x04 {
-		msgtemp += fmt.Sprintf(" Error", "Zip失败")
+		msgtemp += fmt.Sprintf(" Error:%s", "Zip失败")
 	}
 
 	timePassed := time.Now().Unix() - this.beginTime.Unix()
@@ -873,9 +875,16 @@ func (this *GameUpdater) sendReport() {
 
 	//返回的状态码
 	//status := response.StatusCode
+
+	LogInfo("---------------------------------")
+	LogInfo("-------Build Complete!!!---------")
+	LogInfo("-------time:", time.Unix(time.Now().Unix(), 0).Format("2006-01-02 15:04:05"))
+	LogInfo("-------Total seconds:", timePassed)
+	LogInfo("---------------------------------")
 }
 
 func (this *GameUpdater) clearWhenError() {
+	LogDebug("clearWhenError")
 	os.Remove(this.outAppFileName)
 	os.Remove(this.outZipFileName)
 }

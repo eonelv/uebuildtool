@@ -20,7 +20,8 @@ var config string = `{
 	"automationTool":"C:/Program Files/Epic Games/UE_4.24/Engine/Build/BatchFiles/RunUAT.bat",
 	"UnrealPak":"C:/Program Files/Epic Games/UE_4.24/Engine/Binaries/Win64/UnrealPak.exe",
 	"TeamMembers":"liwei,simb",
-	"isPatch":1
+	"isPatch":1,
+	"isDebugTool":0
 }`
 
 type Config struct {
@@ -44,9 +45,10 @@ type Config struct {
 	CookPlatformType string //Android_ETC2
 
 	//"外网包"
-	IsPatch   bool
-	IsRelease bool
-	IsApp     bool
+	IsPatch     bool
+	IsRelease   bool
+	IsApp       bool
+	IsDebugTool bool
 
 	targetPlatform string //Android / iOS
 	cookflavor     string //ETC2
@@ -74,12 +76,6 @@ func (this *Config) readConfig() error {
 		this.BuilderHome = "E:/golang/uebuildtool"
 	}
 
-	TempPackHome := fmt.Sprintf("%s/APack_iOS", this.BuilderHome)
-	PathExistAndCreate(TempPackHome)
-
-	TempPackHome = fmt.Sprintf("%s/APack_Android", this.BuilderHome)
-	PathExistAndCreate(TempPackHome)
-
 	this.configHome = fmt.Sprintf("%s/config", this.BuilderHome)
 	PathExistAndCreate(this.configHome)
 	configFileName := this.configHome + "/config.json"
@@ -103,6 +99,8 @@ func (this *Config) readConfig() error {
 
 	//如果改成网络或者参数传入 修改下面代码
 	this.IsPatch = GetInt(ConfigDatas, "isPatch") == 1
+	this.IsDebugTool = GetInt(ConfigDatas, "isDebugTool") == 1
+
 	LogInfo("**********************Params*********************")
 	LogInfo("svn code:", this.svnCode)
 	LogInfo("project name:", this.ProjectName)
@@ -112,12 +110,6 @@ func (this *Config) readConfig() error {
 	LogInfo("UnrealPak:", this.UnrealPak)
 	LogInfo("isPatch:", this.IsPatch)
 	LogInfo("*************************************************")
-
-	this.ProjectHomePath = fmt.Sprintf("%s/%s", this.BuilderHome, this.ProjectName)
-	this.ProjectHomePath = strings.ReplaceAll(this.ProjectHomePath, `\`, "/")
-
-	this.JsonHome = fmt.Sprintf("%s/Content/json", this.ProjectHomePath)
-	this.LuaHome = fmt.Sprintf("%s/Content/Script", this.ProjectHomePath)
 
 	//外部传入
 	this.IsRelease = false
@@ -163,6 +155,22 @@ func (this *Config) readConfig() error {
 	LogInfo("Program Param's", "-CookPlatformType=", this.CookPlatformType,
 		"-targetPlatform=", this.targetPlatform, "-Release=", this.IsRelease, "-Patch=", this.IsPatch)
 
+	return nil
+}
+
+func (this *Config) BuildPath() {
+	TempPackHome := fmt.Sprintf("%s/APack_iOS", this.BuilderHome)
+	PathExistAndCreate(TempPackHome)
+
+	TempPackHome = fmt.Sprintf("%s/APack_Android", this.BuilderHome)
+	PathExistAndCreate(TempPackHome)
+
+	this.ProjectHomePath = fmt.Sprintf("%s/%s", this.BuilderHome, this.ProjectName)
+	this.ProjectHomePath = strings.ReplaceAll(this.ProjectHomePath, `\`, "/")
+
+	this.JsonHome = fmt.Sprintf("%s/Content/json", this.ProjectHomePath)
+	this.LuaHome = fmt.Sprintf("%s/Content/Script", this.ProjectHomePath)
+
 	this.CookedPath = fmt.Sprintf("%s/Saved/Cooked/%s/%s/Content", this.ProjectHomePath, this.CookPlatformType, this.ProjectName)
 	if this.targetPlatform == "iOS" {
 		this.OutputPath = fmt.Sprintf("%s/APack_iOS", this.BuilderHome)
@@ -182,5 +190,4 @@ func (this *Config) readConfig() error {
 	zipFilePath := fmt.Sprintf("%s/%s", this.OutputPath, this.today)
 	PathExistAndCreate(zipFilePath)
 	PathExistAndCreate(this.ZipSourcePath)
-	return nil
 }

@@ -73,7 +73,7 @@ func (this *Reslist) Flush(version int64) error {
 
 	err = WriteFile(OutBytes, fmt.Sprintf("%s/reslist_%d.json", this.ZipSourcePakPath, version))
 	if err != nil {
-		LogError("Writereslist.json Error!", err)
+		LogError("Write reslist.json Error!", err)
 		return err
 	}
 	//本地缓存
@@ -106,7 +106,7 @@ func (this *Reslist) Flush(version int64) error {
 
 	err = WriteFile(Bytes, pakversionFileName)
 	if err != nil {
-		LogError("Writereslist.json Error!", err)
+		LogError("Write reslist.json Error!", err)
 		return err
 	}
 	return nil
