@@ -22,6 +22,7 @@ var config string = `{
 	"TeamMembers":"liwei,simb",
 	"isPatch":1,
 	"isDebugTool":0
+	"isEncrypt":0
 }`
 
 type Config struct {
@@ -49,6 +50,7 @@ type Config struct {
 	IsRelease   bool
 	IsApp       bool
 	IsDebugTool bool
+	IsEncrypt   bool
 
 	targetPlatform string //Android / iOS
 	cookflavor     string //ETC2
@@ -100,6 +102,7 @@ func (this *Config) readConfig() error {
 	//如果改成网络或者参数传入 修改下面代码
 	this.IsPatch = GetInt(ConfigDatas, "isPatch") == 1
 	this.IsDebugTool = GetInt(ConfigDatas, "isDebugTool") == 1
+	this.IsEncrypt = GetInt(ConfigDatas, "isDebugTool") == 1
 
 	LogInfo("**********************Params*********************")
 	LogInfo("svn code:", this.svnCode)

@@ -143,8 +143,10 @@ func (this *GameUpdater) DoUpdate() {
 	//6. 写入代码版本号到C++（这里还需要读取Sqlite的功能，最后再加吧）
 	this.writeVersionCPP()
 
-	EncryptAndCompressAll(this.config.JsonHome)
-	EncryptAndCompressAll(this.config.LuaHome)
+	if this.config.IsEncrypt {
+		EncryptAndCompressAll(this.config.JsonHome)
+		EncryptAndCompressAll(this.config.LuaHome)
+	}
 
 	if this.config.IsApp {
 		//在C++代码被修改之后，特别是蓝图父类，会丢失蓝图，必须重新check一次代码，所以更新完马上编译
@@ -259,6 +261,7 @@ func (this *GameUpdater) processReslist() error {
 	this.Reslist.configHome = this.config.configHome
 	this.Reslist.ZipSourcePakPath = this.config.ZipSourcePath
 	this.Reslist.IsPatch = this.config.IsPatch
+	this.Reslist.IsEncrypt = this.config.IsEncrypt
 
 	this.Reslist.ReadData()
 	return nil
@@ -411,7 +414,7 @@ func (this *GameUpdater) go_CopyFile() {
 	for {
 		select {
 		case s := <-this.chanWattingCopyFileName:
-			if strings.HasSuffix(s.relName, ".json") || strings.HasSuffix(s.relName, ".lua") {
+			if this.config.IsEncrypt && (strings.HasSuffix(s.relName, ".json") || strings.HasSuffix(s.relName, ".lua")) {
 				CopyFileAndCompress(s.sourceParentPath+"/"+s.relName, this.config.ResOutputContentPath+"/"+s.relName)
 			} else {
 				CopyFile(s.sourceParentPath+"/"+s.relName, this.config.ResOutputContentPath+"/"+s.relName)
