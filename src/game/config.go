@@ -25,6 +25,12 @@ var config string = `{
 	"isEncrypt":0
 }`
 
+var BuildAndroid string = `uebuildtool.exe -Release=false -Patch=true -cookflavor=ETC2 -targetPlatform=Android -BuildApp=true`
+
+var BuildAndroidRes string = `uebuildtool.exe -Release=false -Patch=true -cookflavor=ETC2 -targetPlatform=Android`
+
+var BuildIOS string = `uebuildtool.exe -Release=false -Patch=true -targetPlatform=iOS -BuildApp=true`
+
 type Config struct {
 	//配置参数
 	UE_EXE string
@@ -87,6 +93,9 @@ func (this *Config) readConfig() error {
 		LogError("Read config Json Failed!")
 
 		WriteFile([]byte(config), configFileName)
+		WriteFile([]byte(BuildAndroid), this.BuilderHome+"/BuildAndroid.cmd")
+		WriteFile([]byte(BuildAndroidRes), this.BuilderHome+"/BuildAndroid-Res.cmd")
+		WriteFile([]byte(BuildIOS), this.BuilderHome+"/BuildIOS.cmd")
 		return err
 	}
 

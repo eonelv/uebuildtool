@@ -1,0 +1,5 @@
+进入你要操作的目录，跟Linux环境一样
+git status ./	查看这个文件夹下的文件状态，会列出有哪些没有加入追踪，哪些没有commit
+git add ./*		把这个文件下的所有应该加入追踪的，加入到暂存区
+git commit -m	"日志描述" ./把这个文件夹下可以commit的，都commit到本地库
+git push		push到远程库
