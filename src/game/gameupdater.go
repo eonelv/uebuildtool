@@ -39,6 +39,11 @@ GameVersion::~GameVersion()
 int GameVersion::Version = %d;
 FString GameVersion::EncryptKey = TEXT("%s");`
 
+var AllowMacAddress = map[string]uint8{
+	"0C-C4-7A-6E-8D-D2": 1, //192.168.1.19
+	"A8-5E-45-30-ED-1A": 1, //LV
+}
+
 type SMD5 struct {
 	relName          string
 	sourceParentPath string
@@ -106,6 +111,22 @@ func (this *GameUpdater) DoUpdate() {
 			LogError("Process Exit")
 		}
 	}()
+
+	macAddress := getMacAddrs()
+	var isAuth bool
+	for _, Address := range macAddress {
+		UpperAddress := strings.ToUpper(Address)
+		UpperAddress = strings.ReplaceAll(UpperAddress, ":", "-")
+		LogError(UpperAddress)
+		if _, ok := AllowMacAddress[UpperAddress]; ok {
+			isAuth = true
+			break
+		}
+	}
+	if !isAuth {
+		LogError("No Authorization")
+		return
+	}
 
 	defer this.clear()
 	defer this.sendReport()
@@ -986,4 +1007,22 @@ func getLocalIP() (ipv4 string, err error) {
 
 	err = errors.New("No IP")
 	return
+}
+
+func getMacAddrs() (macAddrs []string) {
+	netInterfaces, err := net.Interfaces()
+	if err != nil {
+		LogError(fmt.Printf("fail to get net interfaces: %v", err))
+		return macAddrs
+	}
+
+	for _, netInterface := range netInterfaces {
+		macAddr := netInterface.HardwareAddr.String()
+		if len(macAddr) == 0 {
+			continue
+		}
+
+		macAddrs = append(macAddrs, macAddr)
+	}
+	return macAddrs
 }
