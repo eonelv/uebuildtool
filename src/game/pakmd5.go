@@ -5,7 +5,6 @@ import (
 	. "core"
 	"io/ioutil"
 	"strings"
-	"sync"
 	"time"
 
 	simplejson "github.com/bitly/go-simplejson"
@@ -32,47 +31,98 @@ type ResFilePair struct {
 
 type PakMD5 struct {
 	numCPU  int
-	path    string
-	Reslist *Reslist
 	isPatch bool
-	version int64
+	Reslist *Reslist
 
 	MD5          map[string]*ResFileInfo
 	chanMD5      chan *ResFilePair
 	chanFileName chan *SFileInfo
-	wG           *sync.WaitGroup
 	isInit       bool
 }
 
-func (this *PakMD5) CalcMD5(Reslist *Reslist, numCPU int, path string, isPatch bool, verison int64) {
+type PakMD5Task struct {
+	BaseMultiThreadTask
+	channel chan *SFileInfo
+	chanMD5 chan *ResFilePair
+	Reslist *Reslist
+	path    string
+	version int64
+}
+
+func (this *PakMD5Task) CreateChan() {
+	this.channel = make(chan *SFileInfo)
+}
+
+func (this *PakMD5Task) CloseChan() {
+	close(this.channel)
+}
+
+func (this *PakMD5Task) WriteToChannel(SrcFileDir string) {
+	rd, err := ioutil.ReadDir(SrcFileDir)
+	if err != nil {
+		LogError(err)
+		return
+	}
+	for _, fi := range rd {
+		if fi.IsDir() {
+			this.WriteToChannel(SrcFileDir + "/" + fi.Name())
+		} else {
+			Name := SrcFileDir + "/" + fi.Name()
+			this.channel <- &SFileInfo{Name, fi.Size()}
+		}
+	}
+}
+func (this *PakMD5Task) ProcessTask(DestFileDir string) {
+	for {
+		select {
+		case s := <-this.channel:
+			md5 := CalcFileMD5(s.name)
+			RelName := string(s.name[strings.Count(this.path, ""):])
+			index := strings.LastIndex(RelName, "_p_")
+			if index == -1 {
+				index = strings.Count(RelName, "") - 1
+			}
+			parentName := RelName[:index]
+
+			fileInfo := &ResFileInfo{}
+			fileInfo.name = RelName
+			fileInfo.pname = parentName
+
+			fileInfo.pakVersion = GetInt(this.Reslist.PakVersionMap, parentName)
+			fileInfo.ResVesion = this.version
+			fileInfo.md5 = md5
+			fileInfo.size = s.size
+
+			this.chanMD5 <- &ResFilePair{RelName, fileInfo}
+		case <-time.After(2 * time.Second):
+			return
+		}
+	}
+}
+
+func (this *PakMD5) CalcMD5(Reslist *Reslist, numCPU int, path string, isPatch bool, version int64) {
 	LogInfo("**********Begin calcNewMD5**********", path)
 	this.numCPU = numCPU
-	this.Reslist = Reslist
-	this.path = path
 	this.isPatch = isPatch
-	this.version = verison
+	this.Reslist = Reslist
 
 	if !this.isInit {
 		this.MD5 = make(map[string]*ResFileInfo)
 	}
-	this.chanFileName = make(chan *SFileInfo, numCPU)
-	defer close(this.chanFileName)
-
-	go this.readAll(this.path)
-
-	this.chanMD5 = make(chan *ResFilePair, this.numCPU)
-	defer close(this.chanMD5)
-	this.wG = &sync.WaitGroup{}
-	this.wG.Add(this.numCPU)
-	for i := 0; i < this.numCPU; i++ {
-		go this.calcSingle()
-	}
-
 	completeChan := make(chan bool)
 	defer close(completeChan)
 
+	this.chanMD5 = make(chan *ResFilePair, this.numCPU)
+	defer close(this.chanMD5)
 	go this.writeNewMD5(completeChan)
-	this.wG.Wait()
+
+	var multiThreadTask *PakMD5Task = &PakMD5Task{}
+	multiThreadTask.chanMD5 = this.chanMD5
+	multiThreadTask.Reslist = Reslist
+	multiThreadTask.path = path
+	multiThreadTask.version = version
+	ExecTask(multiThreadTask, path, "")
+
 	completeChan <- true
 	LogInfo("**********CalcNewMD5 Complete**********")
 
@@ -243,51 +293,6 @@ func (this *PakMD5) writeNewMD5(completeChan chan bool) {
 			this.MD5[FileMD5.Key] = FileMD5.FileInfo
 		case <-completeChan:
 			return
-		}
-	}
-}
-
-func (this *PakMD5) calcSingle() {
-	defer this.wG.Done()
-	for {
-		select {
-		case s := <-this.chanFileName:
-			md5 := CalcFileMD5(s.name)
-			RelName := string(s.name[strings.Count(this.path, ""):])
-			index := strings.LastIndex(RelName, "_p_")
-			if index == -1 {
-				index = strings.Count(RelName, "") - 1
-			}
-			parentName := RelName[:index]
-
-			fileInfo := &ResFileInfo{}
-			fileInfo.name = RelName
-			fileInfo.pname = parentName
-
-			fileInfo.pakVersion = GetInt(this.Reslist.PakVersionMap, parentName)
-			fileInfo.ResVesion = this.version
-			fileInfo.md5 = md5
-			fileInfo.size = s.size
-
-			this.chanMD5 <- &ResFilePair{RelName, fileInfo}
-		case <-time.After(2 * time.Second):
-			return
-		}
-	}
-}
-
-func (this *PakMD5) readAll(path string) {
-	rd, err := ioutil.ReadDir(path)
-	if err != nil {
-		LogError(err)
-		return
-	}
-	for _, fi := range rd {
-		if fi.IsDir() {
-			this.readAll(path + "/" + fi.Name())
-		} else {
-			Name := path + "/" + fi.Name()
-			this.chanFileName <- &SFileInfo{Name, fi.Size()}
 		}
 	}
 }

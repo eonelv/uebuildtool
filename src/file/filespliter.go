@@ -7,9 +7,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
-	"runtime"
 	"strings"
-	"sync"
 	"time"
 )
 
@@ -21,11 +19,6 @@ type MFileInfo struct {
 	Size    int64
 }
 
-type FileSpliter struct {
-	chanSubFileInfo chan *FileSplitInfo
-	wGFile          *sync.WaitGroup
-}
-
 type FileSplitInfo struct {
 	name    string
 	relName string
@@ -34,22 +27,20 @@ type FileSplitInfo struct {
 	part    int32
 }
 
-func (this *FileSpliter) Execute(SrcFileDir string, DestFileDir string) {
-	LogInfo("Begin split large file")
-
-	this.chanSubFileInfo = make(chan *FileSplitInfo)
-	defer close(this.chanSubFileInfo)
-	go this.writeCopyFileToChannel(SrcFileDir)
-
-	this.wGFile = &sync.WaitGroup{}
-	this.wGFile.Add(runtime.NumCPU())
-	for i := 0; i < runtime.NumCPU(); i++ {
-		go this.go_writeFile(DestFileDir)
-	}
-	this.wGFile.Wait()
+type FileSpliterTask struct {
+	BaseMultiThreadTask
+	channel chan *FileSplitInfo
 }
 
-func (this *FileSpliter) writeCopyFileToChannel(SrcFileDir string) {
+func (this *FileSpliterTask) CreateChan() {
+	this.channel = make(chan *FileSplitInfo)
+}
+
+func (this *FileSpliterTask) CloseChan() {
+	close(this.channel)
+}
+
+func (this *FileSpliterTask) WriteToChannel(SrcFileDir string) {
 	filepath.Walk(SrcFileDir, func(path string, info os.FileInfo, err error) error {
 		if err != nil {
 			return err
@@ -79,7 +70,7 @@ func (this *FileSpliter) writeCopyFileToChannel(SrcFileDir string) {
 				spliteInfo.length = size
 				spliteInfo.part = -1
 
-				this.chanSubFileInfo <- spliteInfo
+				this.channel <- spliteInfo
 			} else {
 				for i = 0; i < subFileCount; i++ {
 					spliteInfo := &FileSplitInfo{path, RelName, 0, 0, 0}
@@ -91,7 +82,7 @@ func (this *FileSpliter) writeCopyFileToChannel(SrcFileDir string) {
 					spliteInfo.length = length
 					spliteInfo.part = i
 
-					this.chanSubFileInfo <- spliteInfo
+					this.channel <- spliteInfo
 				}
 			}
 
@@ -100,11 +91,10 @@ func (this *FileSpliter) writeCopyFileToChannel(SrcFileDir string) {
 	})
 }
 
-func (this *FileSpliter) go_writeFile(DestFileDir string) {
-	defer this.wGFile.Done()
+func (this *FileSpliterTask) ProcessTask(DestFileDir string) {
 	for {
 		select {
-		case mi := <-this.chanSubFileInfo:
+		case mi := <-this.channel:
 			this.writeFile(DestFileDir, mi)
 		case <-time.After(2 * time.Second):
 			return
@@ -112,7 +102,7 @@ func (this *FileSpliter) go_writeFile(DestFileDir string) {
 	}
 }
 
-func (this *FileSpliter) writeFile(DestFileDir string, splitInfo *FileSplitInfo) error {
+func (this *FileSpliterTask) writeFile(DestFileDir string, splitInfo *FileSplitInfo) error {
 	fileRead, err := os.Open(splitInfo.name)
 	if err != nil {
 		fmt.Println("Open err:", err)

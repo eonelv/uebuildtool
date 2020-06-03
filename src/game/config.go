@@ -111,7 +111,7 @@ func (this *Config) readConfig() error {
 	//如果改成网络或者参数传入 修改下面代码
 	this.IsPatch = GetInt(ConfigDatas, "isPatch") == 1
 	this.IsDebugTool = GetInt(ConfigDatas, "isDebugTool") == 1
-	this.IsEncrypt = GetInt(ConfigDatas, "isDebugTool") == 1
+	this.IsEncrypt = GetInt(ConfigDatas, "isEncrypt") == 1
 
 	LogInfo("**********************Params*********************")
 	LogInfo("svn code:", this.svnCode)

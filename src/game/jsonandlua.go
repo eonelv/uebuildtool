@@ -2,35 +2,31 @@
 package game
 
 import (
+	. "core"
 	"file"
 	"os"
 	"path/filepath"
-	"runtime"
 	"strings"
-	"sync"
 	"time"
 )
 
-var wG *sync.WaitGroup
-
-var chanWattingEncyptFileName chan string
-
-func EncryptAndCompressAll(SrcFile string) {
-	chanWattingEncyptFileName = make(chan string, runtime.NumCPU())
-	defer close(chanWattingEncyptFileName)
-
-	go writeCompressFileToChannel(SrcFile)
-
-	wG = &sync.WaitGroup{}
-	wG.Add(runtime.NumCPU())
-	for i := 0; i < runtime.NumCPU(); i++ {
-		go go_EncryptAndCompressFile(SrcFile)
-	}
-	wG.Wait()
+type EncryptJsonTask struct {
+	BaseMultiThreadTask
+	channel chan string
 }
 
-func writeCompressFileToChannel(SrcFile string) {
-	filepath.Walk(SrcFile, func(path string, info os.FileInfo, err error) error {
+func (this *EncryptJsonTask) CreateChan() {
+	LogDebug("create channel by EncryptJsonTask")
+	this.channel = make(chan string)
+}
+
+func (this *EncryptJsonTask) CloseChan() {
+	LogDebug("close channel by EncryptJsonTask")
+	close(this.channel)
+}
+
+func (this *EncryptJsonTask) WriteToChannel(SrcFileDir string) {
+	filepath.Walk(SrcFileDir, func(path string, info os.FileInfo, err error) error {
 		if err != nil {
 			return err
 		}
@@ -40,17 +36,17 @@ func writeCompressFileToChannel(SrcFile string) {
 		path = strings.ReplaceAll(path, `\`, "/")
 
 		if !info.IsDir() {
-			chanWattingEncyptFileName <- path
+			this.channel <- path
 		}
 		return err
 	})
 }
 
-func go_EncryptAndCompressFile(DestFile string) {
-	defer wG.Done()
+func (this *EncryptJsonTask) ProcessTask(DestFileDir string) {
+	LogDebug("processTask by EncryptJsonTask")
 	for {
 		select {
-		case s := <-chanWattingEncyptFileName:
+		case s := <-this.channel:
 			file.EncryptFile(s)
 		case <-time.After(1 * time.Second):
 			return

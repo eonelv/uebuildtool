@@ -12,20 +12,53 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
-	"runtime"
 	"strings"
-	"sync"
 	"time"
 )
 
-type MKeyValue struct {
-	Key   string
-	Value string
+type CopyDirTask struct {
+	BaseMultiThreadTask
+	channel chan *MKeyValue
 }
 
-var wG *sync.WaitGroup
+func (this *CopyDirTask) CreateChan() {
+	this.channel = make(chan *MKeyValue)
+	LogDebug("create channel by CopyDirTask")
+}
 
-var chanWattingCopyFileName chan *MKeyValue
+func (this *CopyDirTask) CloseChan() {
+	close(this.channel)
+	LogDebug("close channel by CopyDirTask")
+}
+
+func (this *CopyDirTask) WriteToChannel(SrcFileDir string) {
+	filepath.Walk(SrcFileDir, func(path string, info os.FileInfo, err error) error {
+		if err != nil {
+			return err
+		}
+		if err != nil {
+			return err
+		}
+		path = strings.ReplaceAll(path, `\`, "/")
+
+		if !info.IsDir() {
+			RelName := path[strings.Count(SrcFileDir, ""):]
+			this.channel <- &MKeyValue{path, RelName}
+		}
+		return err
+	})
+}
+
+func (this *CopyDirTask) ProcessTask(DestFileDir string) {
+	for {
+		select {
+		case s := <-this.channel:
+			CopyFile(s.Key, DestFileDir+"/"+s.Value)
+		case <-time.After(1 * time.Second):
+			return
+		}
+	}
+}
 
 func Zip(srcFile string, destZip string) error {
 	zipfile, err := os.Create(destZip)
@@ -113,50 +146,6 @@ func WriteFile(data []byte, filePath string) error {
 		return err
 	}
 	return nil
-}
-
-func CopyDir(SrcFile string, DestFile string) {
-	chanWattingCopyFileName = make(chan *MKeyValue, runtime.NumCPU())
-	defer close(chanWattingCopyFileName)
-
-	go writeCopyFileToChannel(SrcFile)
-
-	wG = &sync.WaitGroup{}
-	wG.Add(runtime.NumCPU())
-	for i := 0; i < runtime.NumCPU(); i++ {
-		go go_CopyFile(DestFile)
-	}
-	wG.Wait()
-}
-
-func writeCopyFileToChannel(SrcFile string) {
-	filepath.Walk(SrcFile, func(path string, info os.FileInfo, err error) error {
-		if err != nil {
-			return err
-		}
-		if err != nil {
-			return err
-		}
-		path = strings.ReplaceAll(path, `\`, "/")
-
-		if !info.IsDir() {
-			RelName := path[strings.Count(SrcFile, ""):]
-			chanWattingCopyFileName <- &MKeyValue{path, RelName}
-		}
-		return err
-	})
-}
-
-func go_CopyFile(DestFile string) {
-	defer wG.Done()
-	for {
-		select {
-		case s := <-chanWattingCopyFileName:
-			CopyFile(s.Key, DestFile+"/"+s.Value)
-		case <-time.After(1 * time.Second):
-			return
-		}
-	}
 }
 
 func CopyFile(SrcFile string, DestFile string) error {

@@ -164,9 +164,13 @@ func (this *GameUpdater) DoUpdate() {
 	//6. 写入代码版本号到C++（这里还需要读取Sqlite的功能，最后再加吧）
 	this.writeVersionCPP()
 
+	var multiThreadTask MultiThreadTask
+
 	if this.config.IsEncrypt {
-		EncryptAndCompressAll(this.config.JsonHome)
-		EncryptAndCompressAll(this.config.LuaHome)
+		LogInfo("开始加密文件")
+		multiThreadTask = &EncryptJsonTask{}
+		ExecTask(multiThreadTask, this.config.JsonHome, "")
+		ExecTask(multiThreadTask, this.config.LuaHome, "")
 	}
 
 	if this.config.IsApp {
@@ -204,11 +208,14 @@ func (this *GameUpdater) DoUpdate() {
 	this.buildPak()
 
 	//文件拆分
-	f := &FileSpliter{}
-	f.Execute(this.config.tempPakPath, this.config.ZipSourcePath)
+	LogInfo("开始拆分文件")
+	multiThreadTask = &FileSpliterTask{}
+	ExecTask(multiThreadTask, this.config.tempPakPath, this.config.ZipSourcePath)
 
-	CopyDir(this.config.ResOutputContentPath+"/Script", this.config.ZipSourcePath+"/Script")
-	CopyDir(this.config.ResOutputContentPath+"/json", this.config.ZipSourcePath+"/json")
+	LogInfo("开始复制目录")
+	multiThreadTask = &CopyDirTask{}
+	ExecTask(multiThreadTask, this.config.ResOutputContentPath+"/Script", this.config.ZipSourcePath+"/Script")
+	ExecTask(multiThreadTask, this.config.ResOutputContentPath+"/json", this.config.ZipSourcePath+"/json")
 
 	//遍历pak目录，计算pak的MD5
 	//如果是外网版本，增加一行记录

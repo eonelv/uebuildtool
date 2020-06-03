@@ -2,8 +2,10 @@
 package main
 
 import (
-	. "game"
-	//. "file"
+	//"core"
+	"game"
+
+	//"file"
 	"runtime"
 )
 
@@ -14,8 +16,12 @@ type FileMD5 struct {
 
 func main() {
 	runtime.GOMAXPROCS(runtime.NumCPU())
-	var gameUpdater *GameUpdater = &GameUpdater{}
+	var gameUpdater *game.GameUpdater = &game.GameUpdater{}
 	gameUpdater.DoUpdate()
+
+	//var task core.MultiThreadTask = &file.CopyDirTask{}
+	//core.ExecTask(task, `C:\UE4\Projects\ENGGame\Content\json`, `D:\lv\1`)
+
 	//ReadJsonFile(`E:\golang\uebuildtool\dynamiclist.json`)
 	//CopyFileAndCompress(`C:\UE4\Projects\ENGGame\Content\json\dynamiclist.json`, `E:\golang\uebuildtool\dynamiclist.json`)
 }
