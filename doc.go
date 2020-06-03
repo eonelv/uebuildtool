@@ -35,6 +35,24 @@ for {
 		return
 	}
 }
+
+------------
+2020.06.03
+------------
+关于多线程任务，最新版已经修改了处理方式
+使用MultiThreadTask统一处理，逻辑不变
+1. 使用的时候定义自己的channel
+type EncryptJsonTask struct {
+	BaseMultiThreadTask
+	channel chan string
+}
+
+2. 实现接口的函数
+func (this *EncryptJsonTask) WriteToChannel(SrcFileDir string)
+func (this *EncryptJsonTask) ProcessTask(DestFileDir string)
+
+func (this *EncryptJsonTask) CreateChan()
+func (this *EncryptJsonTask) CloseChan()
 */
 
 /*
