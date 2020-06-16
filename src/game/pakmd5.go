@@ -6,6 +6,7 @@ import (
 	"io/ioutil"
 	"strings"
 	"time"
+	"utils"
 
 	simplejson "github.com/bitly/go-simplejson"
 )
@@ -88,7 +89,7 @@ func (this *PakMD5Task) ProcessTask(DestFileDir string) {
 			fileInfo.name = RelName
 			fileInfo.pname = parentName
 
-			fileInfo.pakVersion = GetInt(this.Reslist.PakVersionMap, parentName)
+			fileInfo.pakVersion = utils.GetInt(this.Reslist.PakVersionMap, parentName)
 			fileInfo.ResVesion = this.version
 			fileInfo.md5 = md5
 			fileInfo.size = s.size

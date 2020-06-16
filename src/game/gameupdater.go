@@ -5,18 +5,16 @@ import (
 	"bufio"
 	. "core"
 	"crypto/md5"
-	"encoding/json"
-	"errors"
 	. "file"
 	"fmt"
 	"io/ioutil"
-	"net"
 	"net/http"
 	"os"
 	"runtime"
 	"strings"
 	"sync"
 	"time"
+	"utils"
 
 	simplejson "github.com/bitly/go-simplejson"
 )
@@ -38,11 +36,6 @@ GameVersion::~GameVersion()
 
 int GameVersion::Version = %d;
 FString GameVersion::EncryptKey = TEXT("%s");`
-
-var AllowMacAddress = map[string]uint8{
-	"0C-C4-7A-6E-8D-D2": 1, //192.168.1.19
-	"A8-5E-45-30-ED-1A": 1, //LV
-}
 
 type SMD5 struct {
 	relName          string
@@ -112,22 +105,6 @@ func (this *GameUpdater) DoUpdate() {
 		}
 	}()
 
-	macAddress := getMacAddrs()
-	var isAuth bool
-	for _, Address := range macAddress {
-		UpperAddress := strings.ToUpper(Address)
-		UpperAddress = strings.ReplaceAll(UpperAddress, ":", "-")
-		LogError(UpperAddress)
-		if _, ok := AllowMacAddress[UpperAddress]; ok {
-			isAuth = true
-			break
-		}
-	}
-	if !isAuth {
-		LogError("No Authorization")
-		return
-	}
-
 	defer this.clear()
 	defer this.sendReport()
 
@@ -138,15 +115,18 @@ func (this *GameUpdater) DoUpdate() {
 	LogInfo("---------------------------------")
 	this.beginTime = time.Now()
 
-	//0. 读取配置文件
-	err := this.readConfig()
-	if err != nil {
-		LogError("Build Failed time:", time.Now())
-		return
-	}
-	this.clear()
+	/*
+		//0. 读取配置文件
+		err := this.readConfig()
+		if err != nil {
+			LogError("Build Failed time:", time.Now())
+			return
+		}
+		this.clear()
 
-	this.config.BuildPath()
+		this.config.BuildPath()
+	*/
+	this.config.printParams()
 	//1. 更新SVN
 	this.checkOut()
 
@@ -193,7 +173,7 @@ func (this *GameUpdater) DoUpdate() {
 	this.cookDatas()
 
 	//3. 对比输出需要打包的文件（读取旧的文件MD5, 计算新的MD5）
-	oldJson, err := ReadJson(this.config.configHome + "/version.json")
+	oldJson, err := utils.ReadJson(this.config.configHome + "/version.json")
 	if err != nil {
 		LogError("Read Old Json Failed!")
 	}
@@ -295,12 +275,16 @@ func (this *GameUpdater) processReslist() error {
 	return nil
 }
 
-func (this *GameUpdater) readConfig() error {
+func (this *GameUpdater) ReadConfig() error {
 	this.numCPU = runtime.NumCPU()
 	this.config = &Config{}
-	err := this.config.readConfig()
+	err := this.config.ReadConfig()
 	this.today = this.config.today
 	return err
+}
+
+func (this *GameUpdater) GetConfig() *Config {
+	return this.config
 }
 
 func (this *GameUpdater) buildFirst() {
@@ -860,7 +844,7 @@ func (this *GameUpdater) clear() {
 func (this *GameUpdater) sendReport() {
 	tempURL := `http://192.168.0.10/zentaopms/www/sendmsg.php?user=%s&msg=%s`
 
-	ip, err := getLocalIP()
+	ip, err := utils.GetLocalIP()
 	var msgtemp string
 	msgtemp = fmt.Sprintf("%s:%s-%s. 参数: 外网包=%v, 发布版=%v.", ip, this.config.ProjectName, this.config.targetPlatform,
 		this.config.IsPatch, this.config.IsRelease)
@@ -886,8 +870,9 @@ func (this *GameUpdater) sendReport() {
 	//生成client 参数为默认
 	client := &http.Client{}
 
+	notifyMem := strings.ReplaceAll(this.config.teamMembers, "-", ",")
 	//生成要访问的url
-	url := fmt.Sprintf(tempURL, this.config.teamMembers, msgtemp)
+	url := fmt.Sprintf(tempURL, notifyMem, msgtemp)
 
 	//提交请求
 	reqest, err := http.NewRequest("GET", url, nil)
@@ -920,32 +905,6 @@ func (this *GameUpdater) clearWhenError() {
 	os.Remove(this.outZipFileName)
 }
 
-func GetInt(Data map[string]interface{}, Key string) int64 {
-	TempStr, ok := Data[Key]
-	if !ok {
-		return 0
-	}
-	sValue, ok1 := TempStr.(json.Number)
-	if ok1 {
-		result, _ := sValue.Int64()
-		return result
-	}
-
-	sValue1, ok2 := TempStr.(int64)
-	if ok2 {
-		return sValue1
-	}
-	return 0
-}
-
-func GetString(Data map[string]interface{}, Key string) string {
-	TempStr, ok := Data[Key]
-	if !ok {
-		return ""
-	}
-	return TempStr.(string)
-}
-
 func MD5(pData []byte) string {
 	md5 := md5.Sum(pData)
 	return string(md5[:])
@@ -967,69 +926,4 @@ func CalcFileMD5(filePath string) string {
 	}
 	md5 := md5.Sum(bytes)
 	return fmt.Sprintf("%x", md5)
-}
-
-func ReadJson(filePath string) (*simplejson.Json, error) {
-	bytes, err := ioutil.ReadFile(filePath)
-	if err != nil {
-		fmt.Printf("%v\n", err)
-		return simplejson.New(), err
-	}
-	result, err := simplejson.NewJson(bytes)
-
-	if err != nil {
-		fmt.Printf("%v\n", err)
-		return simplejson.New(), err
-	}
-	return result, nil
-}
-
-func getLocalIP() (ipv4 string, err error) {
-	var (
-		addrs   []net.Addr
-		addr    net.Addr
-		ipNet   *net.IPNet // IP地址
-		isIpNet bool
-	)
-	// 获取所有网卡
-	if addrs, err = net.InterfaceAddrs(); err != nil {
-		return
-	}
-	// 取第一个非lo的网卡IP
-	for _, addr = range addrs {
-		// 这个网络地址是IP地址: ipv4, ipv6
-
-		if ipNet, isIpNet = addr.(*net.IPNet); isIpNet && !ipNet.IP.IsLoopback() {
-			// 跳过IPV6
-			if ipNet.IP.To4() != nil {
-				ipv4 = ipNet.IP.String() // 192.168.1.1
-
-				LogInfo(ipv4)
-				if strings.HasPrefix(ipv4, "192.168.") {
-					return
-				}
-			}
-		}
-	}
-
-	err = errors.New("No IP")
-	return
-}
-
-func getMacAddrs() (macAddrs []string) {
-	netInterfaces, err := net.Interfaces()
-	if err != nil {
-		LogError(fmt.Printf("fail to get net interfaces: %v", err))
-		return macAddrs
-	}
-
-	for _, netInterface := range netInterfaces {
-		macAddr := netInterface.HardwareAddr.String()
-		if len(macAddr) == 0 {
-			continue
-		}
-
-		macAddrs = append(macAddrs, macAddr)
-	}
-	return macAddrs
 }

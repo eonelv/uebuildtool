@@ -3,6 +3,7 @@ package core
 import (
 	"bytes"
 	"encoding/binary"
+	"math"
 	"reflect"
 	"runtime"
 )
@@ -17,13 +18,13 @@ func Struct2Bytes(this reflect.Value) ([]byte, bool) {
 			if !ok {
 				return nil, false
 			}
-			err := binary.Write(binData, binary.BigEndian, bytes)
+			err := binary.Write(binData, binary.LittleEndian, bytes)
 			if err != nil {
 				return nil, false
 			}
 		} else if f.Kind() == reflect.String {
 			strValue := f.Interface().(string)
-			err := binary.Write(binData, binary.BigEndian, []byte(strValue))
+			err := binary.Write(binData, binary.LittleEndian, []byte(strValue))
 			if err != nil {
 				LogError("StructToBytes string err. ", f.Kind())
 				return nil, false
@@ -31,9 +32,9 @@ func Struct2Bytes(this reflect.Value) ([]byte, bool) {
 		} else if f.Kind() == reflect.Bool {
 			var err error
 			if f.Interface().(bool) {
-				err = binary.Write(binData, binary.BigEndian, byte(1))
+				err = binary.Write(binData, binary.LittleEndian, byte(1))
 			} else {
-				err = binary.Write(binData, binary.BigEndian, byte(0))
+				err = binary.Write(binData, binary.LittleEndian, byte(0))
 			}
 
 			if err != nil {
@@ -41,7 +42,7 @@ func Struct2Bytes(this reflect.Value) ([]byte, bool) {
 				return nil, false
 			}
 		} else {
-			err := binary.Write(binData, binary.BigEndian, f.Interface())
+			err := binary.Write(binData, binary.LittleEndian, f.Interface())
 			if err != nil {
 				_, file, line, _ := runtime.Caller(2)
 				LogError("StructToBytes others err. ", f.Kind(), err, " File", file, line)
@@ -72,20 +73,20 @@ func Byte2Struct(dataType reflect.Value, bytes1 []byte) (bool, int) {
 			index += 1
 		case reflect.Int16:
 			datas1 := bytes1[index : index+2]
-			valueInt := int64(binary.BigEndian.Uint16(datas1))
+			valueInt := int64(binary.LittleEndian.Uint16(datas1))
 			f.SetInt(valueInt)
 			index += 2
 		case reflect.Int32:
 			datas1 := bytes1[index : index+4]
-			f.SetInt(int64(binary.BigEndian.Uint32(datas1)))
+			f.SetInt(int64(binary.LittleEndian.Uint32(datas1)))
 			index += 4
 		case reflect.Int:
 			datas := bytes1[index : index+4]
-			f.SetInt(int64(binary.BigEndian.Uint32(datas)))
+			f.SetInt(int64(binary.LittleEndian.Uint32(datas)))
 			index += 4
 		case reflect.Int64:
 			datas := bytes1[index : index+8]
-			f.SetInt(int64(binary.BigEndian.Uint64(datas)))
+			f.SetInt(int64(binary.LittleEndian.Uint64(datas)))
 			index += 8
 		case reflect.Uint8:
 			datas := bytes1[index]
@@ -93,19 +94,24 @@ func Byte2Struct(dataType reflect.Value, bytes1 []byte) (bool, int) {
 			index += 1
 		case reflect.Uint16:
 			datas1 := bytes1[index : index+2]
-			f.SetUint(uint64(binary.BigEndian.Uint16(datas1)))
+			f.SetUint(uint64(binary.LittleEndian.Uint16(datas1)))
 			index += 2
 		case reflect.Uint32:
 			datas1 := bytes1[index : index+4]
-			f.SetUint(uint64(binary.BigEndian.Uint32(datas1)))
+			f.SetUint(uint64(binary.LittleEndian.Uint32(datas1)))
 			index += 4
 		case reflect.Uint64:
 			datas := bytes1[index : index+8]
-			f.SetUint(uint64(binary.BigEndian.Uint64(datas)))
+			f.SetUint(uint64(binary.LittleEndian.Uint64(datas)))
 			index += 8
+		case reflect.Float32:
+			datas := bytes1[index : index+4]
+			v := math.Float32frombits(binary.LittleEndian.Uint32(datas))
+			f.SetFloat(float64(v))
+			index += 4
 		case reflect.Float64:
 			datas := bytes1[index : index+8]
-			f.SetFloat(float64(binary.BigEndian.Uint64(datas)))
+			f.SetFloat(float64(binary.LittleEndian.Uint64(datas)))
 			index += 8
 		case reflect.Array:
 			cap := f.Cap()

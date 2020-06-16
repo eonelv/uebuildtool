@@ -2,26 +2,45 @@
 package main
 
 import (
-	//"core"
-	"game"
-
-	//"file"
+	. "core"
+	"mynet"
 	"runtime"
+	"strings"
+	"utils"
 )
 
+/*
 type FileMD5 struct {
 	Key   string
 	Value string
 }
+*/
+
+var Sender *TCPSender
 
 func main() {
 	runtime.GOMAXPROCS(runtime.NumCPU())
-	var gameUpdater *game.GameUpdater = &game.GameUpdater{}
-	gameUpdater.DoUpdate()
+	//var gameUpdater *game.GameUpdater = &game.GameUpdater{}
+	//gameUpdater.DoUpdate()
+	start()
+}
 
-	//var task core.MultiThreadTask = &file.CopyDirTask{}
-	//core.ExecTask(task, `C:\UE4\Projects\ENGGame\Content\json`, `D:\lv\1`)
+func start() {
+	macAddress := utils.GetMacAddrs()
+	var isAuth bool
+	for _, Address := range macAddress {
+		UpperAddress := strings.ToUpper(Address)
+		UpperAddress = strings.ReplaceAll(UpperAddress, ":", "-")
+		LogError(UpperAddress)
+		if _, ok := utils.AllowMacAddress[UpperAddress]; ok {
+			isAuth = true
+			break
+		}
+	}
+	if !isAuth {
+		LogError("No Authorization")
+		return
+	}
 
-	//ReadJsonFile(`E:\golang\uebuildtool\dynamiclist.json`)
-	//CopyFileAndCompress(`C:\UE4\Projects\ENGGame\Content\json\dynamiclist.json`, `E:\golang\uebuildtool\dynamiclist.json`)
+	mynet.Connect()
 }

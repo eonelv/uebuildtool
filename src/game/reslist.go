@@ -6,6 +6,7 @@ import (
 	. "file"
 	"fmt"
 	"sync"
+	"utils"
 
 	simplejson "github.com/bitly/go-simplejson"
 )
@@ -25,11 +26,11 @@ type Reslist struct {
 func (this *Reslist) ReadData() {
 	this.mutex = sync.RWMutex{}
 
-	reslistJson, err := ReadJson(this.configHome + "/reslist.json")
+	reslistJson, err := utils.ReadJson(this.configHome + "/reslist.json")
 	if err != nil {
 		reslistJson = simplejson.New()
 	}
-	pakVersionJson, err := ReadJson(this.configHome + "/pakversion.json")
+	pakVersionJson, err := utils.ReadJson(this.configHome + "/pakversion.json")
 	if err != nil {
 		pakVersionJson = simplejson.New()
 	}
@@ -43,7 +44,7 @@ func (this *Reslist) GetPakIndex(key string) int64 {
 	this.mutex.Lock()
 	defer this.mutex.Unlock()
 
-	index := GetInt(this.PakVersionMap, key)
+	index := utils.GetInt(this.PakVersionMap, key)
 
 	if index == 0 {
 		index = 5

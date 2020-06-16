@@ -28,7 +28,7 @@ func (sender *TCPSender) Send(msg NetMsg) {
 		return
 	}
 
-	sender.UserEncrypt.Encrypt(bytes, 0, len(bytes), false)
+	//sender.UserEncrypt.Encrypt(bytes, 0, len(bytes), false)
 	sender.SendBytes(bytes)
 }
 

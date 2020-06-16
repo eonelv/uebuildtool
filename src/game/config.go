@@ -10,6 +10,7 @@ import (
 	"strconv"
 	"strings"
 	"time"
+	"utils"
 )
 
 var config string = `{
@@ -19,9 +20,9 @@ var config string = `{
 	"unrealBuildTool":"C:/Program Files/Epic Games/UE_4.24/Engine/Binaries/DotNET/UnrealBuildTool.exe",
 	"automationTool":"C:/Program Files/Epic Games/UE_4.24/Engine/Build/BatchFiles/RunUAT.bat",
 	"UnrealPak":"C:/Program Files/Epic Games/UE_4.24/Engine/Binaries/Win64/UnrealPak.exe",
-	"TeamMembers":"liwei,simb",
+	"TeamMembers":"liwei-simb",
 	"isPatch":1,
-	"isDebugTool":0
+	"isDebugTool":0,
 	"isEncrypt":0
 }`
 
@@ -72,7 +73,31 @@ type Config struct {
 	teamMembers string
 }
 
-func (this *Config) readConfig() error {
+func (this *Config) SetMembers(v string) {
+	this.teamMembers = v
+}
+
+func (this *Config) GetMembers() string {
+	return this.teamMembers
+}
+
+func (this *Config) SetTargetPlatform(v string) {
+	this.targetPlatform = v
+}
+
+func (this *Config) SetCookflavor(v string) {
+	this.cookflavor = v
+}
+
+func (this *Config) SetSVNCode(v string) {
+	this.svnCode = v
+}
+
+func (this *Config) GetSVNCode() string {
+	return this.svnCode
+}
+
+func (this *Config) ReadConfig() error {
 
 	t := time.Now()
 	this.today = fmt.Sprintf("%d%02d%02d", t.Year(), t.Month(), t.Day())
@@ -88,40 +113,35 @@ func (this *Config) readConfig() error {
 	PathExistAndCreate(this.configHome)
 	configFileName := this.configHome + "/config.json"
 
-	oldJson, err := ReadJson(configFileName)
+	oldJson, err := utils.ReadJson(configFileName)
 	if err != nil {
-		LogError("Read config Json Failed!")
+		LogError("Read config Json Failed! 1")
 
 		WriteFile([]byte(config), configFileName)
 		WriteFile([]byte(BuildAndroid), this.BuilderHome+"/BuildAndroid.cmd")
 		WriteFile([]byte(BuildAndroidRes), this.BuilderHome+"/BuildAndroid-Res.cmd")
 		WriteFile([]byte(BuildIOS), this.BuilderHome+"/BuildIOS.cmd")
+	}
+
+	oldJson, err = utils.ReadJson(configFileName)
+	if err != nil {
+		LogError("Read config Json Failed! 2")
 		return err
 	}
 
 	ConfigDatas := oldJson.MustMap()
-	this.svnCode = GetString(ConfigDatas, "svncode")
-	this.ProjectName = GetString(ConfigDatas, "projectName")
-	this.UE_EXE = GetString(ConfigDatas, "ue_exe")
-	this.unrealBuildTool = GetString(ConfigDatas, "unrealBuildTool")
-	this.automationTool = GetString(ConfigDatas, "automationTool")
-	this.UnrealPak = GetString(ConfigDatas, "UnrealPak")
-	this.teamMembers = GetString(ConfigDatas, "TeamMembers")
+	this.svnCode = utils.GetString(ConfigDatas, "svncode")
+	this.ProjectName = utils.GetString(ConfigDatas, "projectName")
+	this.UE_EXE = utils.GetString(ConfigDatas, "ue_exe")
+	this.unrealBuildTool = utils.GetString(ConfigDatas, "unrealBuildTool")
+	this.automationTool = utils.GetString(ConfigDatas, "automationTool")
+	this.UnrealPak = utils.GetString(ConfigDatas, "UnrealPak")
+	this.teamMembers = utils.GetString(ConfigDatas, "TeamMembers")
 
 	//如果改成网络或者参数传入 修改下面代码
-	this.IsPatch = GetInt(ConfigDatas, "isPatch") == 1
-	this.IsDebugTool = GetInt(ConfigDatas, "isDebugTool") == 1
-	this.IsEncrypt = GetInt(ConfigDatas, "isEncrypt") == 1
-
-	LogInfo("**********************Params*********************")
-	LogInfo("svn code:", this.svnCode)
-	LogInfo("project name:", this.ProjectName)
-	LogInfo("ue exe:", this.UE_EXE)
-	LogInfo("unrealBuildTool:", this.unrealBuildTool)
-	LogInfo("automationTool:", this.automationTool)
-	LogInfo("UnrealPak:", this.UnrealPak)
-	LogInfo("isPatch:", this.IsPatch)
-	LogInfo("*************************************************")
+	this.IsPatch = utils.GetInt(ConfigDatas, "isPatch") == 1
+	this.IsDebugTool = utils.GetInt(ConfigDatas, "isDebugTool") == 1
+	this.IsEncrypt = utils.GetInt(ConfigDatas, "isEncrypt") == 1
 
 	//外部传入
 	this.IsRelease = false
@@ -164,8 +184,6 @@ func (this *Config) readConfig() error {
 	} else {
 		this.CookPlatformType = fmt.Sprintf("%s_%s", this.targetPlatform, this.cookflavor)
 	}
-	LogInfo("Program Param's", "-CookPlatformType=", this.CookPlatformType,
-		"-targetPlatform=", this.targetPlatform, "-Release=", this.IsRelease, "-Patch=", this.IsPatch)
 
 	return nil
 }
@@ -202,4 +220,28 @@ func (this *Config) BuildPath() {
 	zipFilePath := fmt.Sprintf("%s/%s", this.OutputPath, this.today)
 	PathExistAndCreate(zipFilePath)
 	PathExistAndCreate(this.ZipSourcePath)
+}
+
+func (this *Config) printParams() {
+	LogInfo("**********************Params*********************")
+	LogInfo("svn code:", this.svnCode)
+	LogInfo("project name:", this.ProjectName)
+
+	LogInfo("CookPlatformType:", this.CookPlatformType)
+	LogInfo("targetPlatform:", this.targetPlatform)
+
+	LogInfo("Members:", this.teamMembers)
+
+	LogInfo("IsPatch:", this.IsPatch)
+	LogInfo("IsRelease:", this.IsRelease)
+	LogInfo("IsPatch:", this.IsPatch)
+	LogInfo("IsApp:", this.IsApp)
+
+	LogInfo("-------------------------------------")
+	LogInfo("ue exe:", this.UE_EXE)
+	LogInfo("unrealBuildTool:", this.unrealBuildTool)
+	LogInfo("automationTool:", this.automationTool)
+	LogInfo("UnrealPak:", this.UnrealPak)
+
+	LogInfo("*************************************************")
 }
