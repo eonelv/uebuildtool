@@ -83,6 +83,11 @@ func (this *Config) GetMembers() string {
 
 func (this *Config) SetTargetPlatform(v string) {
 	this.targetPlatform = v
+	if this.targetPlatform == "iOS" {
+		this.CookPlatformType = "iOS"
+	} else {
+		this.CookPlatformType = fmt.Sprintf("%s_%s", this.targetPlatform, this.cookflavor)
+	}
 }
 
 func (this *Config) SetCookflavor(v string) {
