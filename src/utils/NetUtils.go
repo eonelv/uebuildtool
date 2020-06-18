@@ -6,7 +6,6 @@ import (
 	"errors"
 	"fmt"
 	"net"
-	"strings"
 )
 
 var AllowMacAddress = map[string]uint8{
@@ -25,17 +24,21 @@ func GetLocalIP() (ipv4 string, err error) {
 	if addrs, err = net.InterfaceAddrs(); err != nil {
 		return
 	}
+
+	LogDebug("Get Ip")
 	// 取第一个非lo的网卡IP
 	for _, addr = range addrs {
 		// 这个网络地址是IP地址: ipv4, ipv6
-
 		if ipNet, isIpNet = addr.(*net.IPNet); isIpNet && !ipNet.IP.IsLoopback() {
-			// 跳过IPV6
-			if ipNet.IP.To4() != nil {
+			if ip4 := ipNet.IP.To4(); ip4 != nil {
 				ipv4 = ipNet.IP.String() // 192.168.1.1
-
-				LogInfo(ipv4)
-				if strings.HasPrefix(ipv4, "192.168.") {
+				LogDebug("Local IP", ipv4)
+				switch true {
+				case ip4[0] == 10:
+					return
+				case ip4[0] == 172 && ip4[1] >= 16 && ip4[1] <= 31:
+					return
+				case ip4[0] == 192 && ip4[1] == 168:
 					return
 				}
 			}
