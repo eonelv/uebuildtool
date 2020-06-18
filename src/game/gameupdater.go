@@ -3,6 +3,7 @@ package game
 
 import (
 	"bufio"
+	. "cfg"
 	. "core"
 	"crypto/md5"
 	. "file"
@@ -126,7 +127,7 @@ func (this *GameUpdater) DoUpdate() {
 
 		this.config.BuildPath()
 	*/
-	this.config.printParams()
+	this.config.PrintParams()
 	//1. 更新SVN
 	this.checkOut()
 
@@ -173,7 +174,7 @@ func (this *GameUpdater) DoUpdate() {
 	this.cookDatas()
 
 	//3. 对比输出需要打包的文件（读取旧的文件MD5, 计算新的MD5）
-	oldJson, err := utils.ReadJson(this.config.configHome + "/version.json")
+	oldJson, err := utils.ReadJson(this.config.ConfigHome + "/version.json")
 	if err != nil {
 		LogError("Read Old Json Failed!")
 	}
@@ -190,7 +191,7 @@ func (this *GameUpdater) DoUpdate() {
 	//文件拆分
 	LogInfo("开始拆分文件")
 	multiThreadTask = &FileSpliterTask{}
-	ExecTask(multiThreadTask, this.config.tempPakPath, this.config.ZipSourcePath)
+	ExecTask(multiThreadTask, this.config.TempPakPath, this.config.ZipSourcePath)
 
 	LogInfo("开始复制目录")
 	multiThreadTask = &CopyDirTask{}
@@ -202,7 +203,7 @@ func (this *GameUpdater) DoUpdate() {
 	//如果是内网版本，替换掉现有记录
 	pakmd5 := &PakMD5{}
 	//计算原始文件MD5
-	pakmd5.CalcMD5(this.Reslist, this.numCPU, this.config.tempPakPath, this.config.IsPatch, this.version)
+	pakmd5.CalcMD5(this.Reslist, this.numCPU, this.config.TempPakPath, this.config.IsPatch, this.version)
 	//计算拆分文件MD5
 	pakmd5.CalcMD5(this.Reslist, this.numCPU, this.config.ZipSourcePath, this.config.IsPatch, this.version)
 
@@ -266,7 +267,7 @@ func (this *GameUpdater) checkAvalibleZipFile(path string) int {
 
 func (this *GameUpdater) processReslist() error {
 	this.Reslist = &Reslist{}
-	this.Reslist.configHome = this.config.configHome
+	this.Reslist.configHome = this.config.ConfigHome
 	this.Reslist.ZipSourcePakPath = this.config.ZipSourcePath
 	this.Reslist.IsPatch = this.config.IsPatch
 	this.Reslist.IsEncrypt = this.config.IsEncrypt
@@ -279,7 +280,7 @@ func (this *GameUpdater) ReadConfig() error {
 	this.numCPU = runtime.NumCPU()
 	this.config = &Config{}
 	err := this.config.ReadConfig()
-	this.today = this.config.today
+	this.today = this.config.Today
 	return err
 }
 
@@ -290,7 +291,7 @@ func (this *GameUpdater) GetConfig() *Config {
 func (this *GameUpdater) buildFirst() {
 	LogInfo("**********Begin checkout svn code**********")
 	ProjectFileParam := fmt.Sprintf(`-Project=%s/%s.uproject`, this.config.ProjectHomePath, this.config.ProjectName)
-	Exec(this.config.unrealBuildTool, "Development", "Win64", ProjectFileParam, "-TargetType=Editor", "-Progress", "-NoHotReloadFromIDE")
+	Exec(this.config.UnrealBuildTool, "Development", "Win64", ProjectFileParam, "-TargetType=Editor", "-Progress", "-NoHotReloadFromIDE")
 	LogInfo("**********BuildFirst Complete!**********")
 }
 
@@ -355,10 +356,10 @@ func (this *GameUpdater) findPakContent() {
 
 func (this *GameUpdater) buildPak() {
 	LogInfo("**********Begin buildPak**********")
-	if ok, _ := PathExists(this.config.tempPakPath); !ok {
-		os.MkdirAll(this.config.tempPakPath, os.ModePerm)
+	if ok, _ := PathExists(this.config.TempPakPath); !ok {
+		os.MkdirAll(this.config.TempPakPath, os.ModePerm)
 	} else {
-		os.RemoveAll(this.config.tempPakPath)
+		os.RemoveAll(this.config.TempPakPath)
 	}
 
 	this.chanPakPath = make(chan *SKeyValue, this.numCPU)
@@ -387,7 +388,7 @@ func (this *GameUpdater) go_build() {
 }
 
 func (this *GameUpdater) buildSinglePak(pakSrcPath *SKeyValue) {
-	outputPak := fmt.Sprintf("%s/%s_p_%d.pak", this.config.tempPakPath, pakSrcPath.Value, this.Reslist.GetPakIndex(pakSrcPath.Value))
+	outputPak := fmt.Sprintf("%s/%s_p_%d.pak", this.config.TempPakPath, pakSrcPath.Value, this.Reslist.GetPakIndex(pakSrcPath.Value))
 
 	LogInfo("Build pak file Name=", outputPak)
 	sourceFile := fmt.Sprintf("-create=%s", pakSrcPath.Key)
@@ -659,15 +660,15 @@ func (this *GameUpdater) buildApp() bool {
 
 	defer os.Remove(tempBuildFile)
 
-	if this.config.targetPlatform == "Android" {
-		achieveDir = fmt.Sprintf("%s/%s_%s", this.config.OutputPath, this.config.targetPlatform, this.config.cookflavor)
+	if this.config.GetTargetPlatform() == "Android" {
+		achieveDir = fmt.Sprintf("%s/%s_%s", this.config.OutputPath, this.config.GetTargetPlatform(), this.config.GetCookflavor())
 
 		a1 := fmt.Sprintf("-ScriptsForProject=%s/%s.uproject", this.config.ProjectHomePath, this.config.ProjectName)
 		a2 := "BuildCookRun"
 		a3 := fmt.Sprintf("-project=%s/%s.uproject", this.config.ProjectHomePath, this.config.ProjectName)
 		a4 := fmt.Sprintf("-archivedirectory=%s", this.config.OutputPath)
 
-		a5 := fmt.Sprintf("-cookflavor=%s", this.config.cookflavor)
+		a5 := fmt.Sprintf("-cookflavor=%s", this.config.GetCookflavor())
 		var a6 string
 		if !this.config.IsRelease {
 			a6 = "-clientconfig=DebugGame"
@@ -676,7 +677,7 @@ func (this *GameUpdater) buildApp() bool {
 		}
 
 		a7 := fmt.Sprintf(`-ue4exe="%s"`, this.config.UE_EXE)
-		a8 := fmt.Sprintf("-targetplatform=%s", this.config.targetPlatform)
+		a8 := fmt.Sprintf("-targetplatform=%s", this.config.GetTargetPlatform())
 		var argAll []string
 		argAll = append(argAll, a1)
 		argAll = append(argAll, a2)
@@ -692,14 +693,14 @@ func (this *GameUpdater) buildApp() bool {
 			"-SkipCookingEditorContent",
 			"-pak", "-prereqs", "-nodebuginfo", "-build",
 			"-utf8output", "-compile")
-		var cmdString = "\"" + this.config.automationTool + "\""
+		var cmdString = "\"" + this.config.AutomationTool + "\""
 		for _, a := range argAll {
 			cmdString += " "
 			cmdString += a
 		}
 		WriteFile([]byte(cmdString), tempBuildFile)
 	} else {
-		achieveDir = fmt.Sprintf("%s/%s", this.config.OutputPath, this.config.targetPlatform)
+		achieveDir = fmt.Sprintf("%s/%s", this.config.OutputPath, this.config.GetTargetPlatform())
 
 		a1 := fmt.Sprintf("-ScriptsForProject=%s/%s.uproject", this.config.ProjectHomePath, this.config.ProjectName)
 		a2 := "BuildCookRun"
@@ -714,7 +715,7 @@ func (this *GameUpdater) buildApp() bool {
 		}
 
 		a6 := fmt.Sprintf(`-ue4exe="%s"`, this.config.UE_EXE)
-		a7 := fmt.Sprintf("-targetplatform=%s", this.config.targetPlatform)
+		a7 := fmt.Sprintf("-targetplatform=%s", this.config.GetTargetPlatform())
 
 		var argAll []string
 		argAll = append(argAll, a1)
@@ -729,7 +730,7 @@ func (this *GameUpdater) buildApp() bool {
 			"-SkipCookingEditorContent",
 			"-pak", "-prereqs", "-nodebuginfo", "-build",
 			"-utf8output", "-compile")
-		var cmdString = "\"" + this.config.automationTool + "\""
+		var cmdString = "\"" + this.config.AutomationTool + "\""
 		for _, a := range argAll {
 			cmdString += " "
 			cmdString += a
@@ -798,12 +799,12 @@ func (this *GameUpdater) checkOut() {
 }
 
 func (this *GameUpdater) svnCheckout() {
-	LogInfo("The next step is to update code")
+	LogInfo("The next step is to update code", this.config.GetSVNCode(), this.config.ProjectName)
 	this.sysChan <- "updating code"
 
 	ok, _ := PathExists(this.config.ProjectName)
 	if !ok {
-		ExecSVNCmd("svn", "checkout", this.config.svnCode, this.config.ProjectName)
+		ExecSVNCmd("svn", "checkout", this.config.GetSVNCode(), this.config.ProjectName)
 	}
 
 	ExecSVNCmd("svn", "cleanup", this.config.ProjectName)
@@ -820,7 +821,7 @@ func (this *GameUpdater) writeVersion(oldJson *simplejson.Json) bool {
 		LogError("Read Json Data Error!", err)
 		return false
 	}
-	errWrite := WriteFile(Bytes, this.config.configHome+"/version.json")
+	errWrite := WriteFile(Bytes, this.config.ConfigHome+"/version.json")
 	if errWrite != nil {
 		LogError("Write version.json Error!", errWrite)
 		return false
@@ -831,7 +832,7 @@ func (this *GameUpdater) writeVersion(oldJson *simplejson.Json) bool {
 func (this *GameUpdater) clear() {
 	//删除缓存文件
 	os.RemoveAll(this.config.ResOutputContentPath)
-	os.RemoveAll(this.config.tempPakPath)
+	os.RemoveAll(this.config.TempPakPath)
 	os.RemoveAll(this.config.ZipSourcePath)
 	os.RemoveAll(this.config.JsonHome)
 	os.RemoveAll(this.config.LuaHome)
@@ -846,7 +847,7 @@ func (this *GameUpdater) sendReport() {
 
 	ip, err := utils.GetLocalIP()
 	var msgtemp string
-	msgtemp = fmt.Sprintf("%s:%s-%s. 参数: 外网包=%v, 发布版=%v.", ip, this.config.ProjectName, this.config.targetPlatform,
+	msgtemp = fmt.Sprintf("%s:%s-%s. 参数: 外网包=%v, 发布版=%v.", ip, this.config.ProjectName, this.config.GetTargetPlatform(),
 		this.config.IsPatch, this.config.IsRelease)
 	if this.outAppFileName != "" {
 		msgtemp += fmt.Sprintf(" [App]:%s", this.outAppFileName[len(this.config.BuilderHome)+1:])
@@ -870,7 +871,7 @@ func (this *GameUpdater) sendReport() {
 	//生成client 参数为默认
 	client := &http.Client{}
 
-	notifyMem := strings.ReplaceAll(this.config.teamMembers, "-", ",")
+	notifyMem := strings.ReplaceAll(this.config.GetMembers(), "-", ",")
 	//生成要访问的url
 	url := fmt.Sprintf(tempURL, notifyMem, msgtemp)
 

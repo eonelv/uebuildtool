@@ -54,15 +54,18 @@ func (this *MsgBuild) build(Sender *TCPSender) {
 	}
 
 	config := gameUpdater.GetConfig()
-	config.BuildPath()
+
 	config.IsPatch = this.IsPatch
 	config.IsRelease = this.IsRelease
 	config.IsApp = this.IsBuildApp
 	config.ProjectName = Byte2String(project.ProjectName[:])
+
+	LogDebug("set svn path:", Byte2String(project.SVN[:]))
 	config.SetSVNCode(Byte2String(project.SVN[:]))
 	config.SetMembers(Byte2String(project.Member[:]))
 	config.SetTargetPlatform(Byte2String(this.TargetPlatform[:]))
 	config.SetCookflavor(Byte2String(this.Cookflavor[:]))
+	config.BuildPath()
 
 	msgBuildInfo := &MsgBuildInfo{}
 

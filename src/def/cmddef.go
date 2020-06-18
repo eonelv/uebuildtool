@@ -2,15 +2,18 @@
 package def
 
 const (
-	CMD_CONNECTION      uint16 = 1052
-	CMD_REGISTER        uint16 = 1002
-	CMD_LOGIN           uint16 = 1003
-	CMD_TALK            uint16 = 1006
-	CMD_REGISTER_SERVER uint16 = 1007
-	CMD_BIND_SERVER     uint16 = 1008
-	CMD_BUILD           uint16 = 1010
-	CMD_BUILD_INFO      uint16 = 1011
-	CMD_ACTOR           uint16 = 10008
+	CMD_CONNECTION uint16 = 1052
+	CMD_REGISTER   uint16 = 1002
+	CMD_LOGIN      uint16 = 1003
+	CMD_TALK       uint16 = 1006
+
+	CMD_REGISTER_SERVER uint16 = 50007
+	CMD_BIND_SERVER     uint16 = 50008
+	CMD_BUILD           uint16 = 50010
+	CMD_BUILD_INFO      uint16 = 50011
+	CMD_PROJECT         uint16 = 50012
+
+	CMD_ACTOR uint16 = 10008
 )
 
 const (

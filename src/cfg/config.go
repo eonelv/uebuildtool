@@ -1,5 +1,5 @@
 // config
-package game
+package cfg
 
 import (
 	. "core"
@@ -37,13 +37,13 @@ type Config struct {
 	UE_EXE string
 	//UnrealPak工具路径
 	UnrealPak       string
-	automationTool  string
-	unrealBuildTool string
+	AutomationTool  string
+	UnrealBuildTool string
 
 	svnCode string
 
 	BuilderHome     string
-	configHome      string
+	ConfigHome      string
 	ProjectHomePath string
 	ProjectName     string
 
@@ -66,10 +66,10 @@ type Config struct {
 	CookedPath           string
 	OutputPath           string
 	ResOutputContentPath string
-	tempPakPath          string
+	TempPakPath          string
 	ZipSourcePath        string
 
-	today       string
+	Today       string
 	teamMembers string
 }
 
@@ -90,8 +90,16 @@ func (this *Config) SetTargetPlatform(v string) {
 	}
 }
 
+func (this *Config) GetTargetPlatform() string {
+	return this.targetPlatform
+}
+
 func (this *Config) SetCookflavor(v string) {
 	this.cookflavor = v
+}
+
+func (this *Config) GetCookflavor() string {
+	return this.cookflavor
 }
 
 func (this *Config) SetSVNCode(v string) {
@@ -105,27 +113,31 @@ func (this *Config) GetSVNCode() string {
 func (this *Config) ReadConfig() error {
 
 	t := time.Now()
-	this.today = fmt.Sprintf("%d%02d%02d", t.Year(), t.Month(), t.Day())
+	this.Today = fmt.Sprintf("%d%02d%02d", t.Year(), t.Month(), t.Day())
 
 	dir, err := filepath.Abs(filepath.Dir(os.Args[0]))
+	LogDebug("exe folder:", filepath.Dir(os.Args[0]))
 	if err == nil {
 		this.BuilderHome = dir
 	} else {
 		this.BuilderHome = "E:/golang/uebuildtool"
 	}
 
-	this.configHome = fmt.Sprintf("%s/config", this.BuilderHome)
-	PathExistAndCreate(this.configHome)
-	configFileName := this.configHome + "/config.json"
+	this.ConfigHome = fmt.Sprintf("%s/config", this.BuilderHome)
+	PathExistAndCreate(this.ConfigHome)
+	configFileName := this.ConfigHome + "/config.json"
 
 	oldJson, err := utils.ReadJson(configFileName)
 	if err != nil {
 		LogError("Read config Json Failed! 1")
 
 		WriteFile([]byte(config), configFileName)
-		WriteFile([]byte(BuildAndroid), this.BuilderHome+"/BuildAndroid.cmd")
-		WriteFile([]byte(BuildAndroidRes), this.BuilderHome+"/BuildAndroid-Res.cmd")
-		WriteFile([]byte(BuildIOS), this.BuilderHome+"/BuildIOS.cmd")
+
+		//使用远程编译， 不用生成脚本文件
+		//WriteFile([]byte(BuildAndroid), this.BuilderHome+"/BuildAndroid.cmd")
+		//WriteFile([]byte(BuildAndroidRes), this.BuilderHome+"/BuildAndroid-Res.cmd")
+		//WriteFile([]byte(BuildIOS), this.BuilderHome+"/BuildIOS.cmd")
+		return err
 	}
 
 	oldJson, err = utils.ReadJson(configFileName)
@@ -138,8 +150,8 @@ func (this *Config) ReadConfig() error {
 	this.svnCode = utils.GetString(ConfigDatas, "svncode")
 	this.ProjectName = utils.GetString(ConfigDatas, "projectName")
 	this.UE_EXE = utils.GetString(ConfigDatas, "ue_exe")
-	this.unrealBuildTool = utils.GetString(ConfigDatas, "unrealBuildTool")
-	this.automationTool = utils.GetString(ConfigDatas, "automationTool")
+	this.UnrealBuildTool = utils.GetString(ConfigDatas, "unrealBuildTool")
+	this.AutomationTool = utils.GetString(ConfigDatas, "automationTool")
 	this.UnrealPak = utils.GetString(ConfigDatas, "UnrealPak")
 	this.teamMembers = utils.GetString(ConfigDatas, "TeamMembers")
 
@@ -209,25 +221,25 @@ func (this *Config) BuildPath() {
 	this.CookedPath = fmt.Sprintf("%s/Saved/Cooked/%s/%s/Content", this.ProjectHomePath, this.CookPlatformType, this.ProjectName)
 	if this.targetPlatform == "iOS" {
 		this.OutputPath = fmt.Sprintf("%s/APack_iOS", this.BuilderHome)
-		this.configHome = fmt.Sprintf("%s/config/iOS", this.BuilderHome)
+		this.ConfigHome = fmt.Sprintf("%s/config/iOS", this.BuilderHome)
 	} else {
 		this.OutputPath = fmt.Sprintf("%s/APack_Android", this.BuilderHome)
-		this.configHome = fmt.Sprintf("%s/config/Android", this.BuilderHome)
+		this.ConfigHome = fmt.Sprintf("%s/config/Android", this.BuilderHome)
 	}
 
-	PathExistAndCreate(this.configHome)
+	PathExistAndCreate(this.ConfigHome)
 
-	this.tempPakPath = fmt.Sprintf("%s/paks", this.OutputPath)
+	this.TempPakPath = fmt.Sprintf("%s/paks", this.OutputPath)
 	this.ZipSourcePath = fmt.Sprintf("%s/tempFiles", this.OutputPath)
 
 	this.ResOutputContentPath = fmt.Sprintf("%s/Content", this.OutputPath)
 
-	zipFilePath := fmt.Sprintf("%s/%s", this.OutputPath, this.today)
+	zipFilePath := fmt.Sprintf("%s/%s", this.OutputPath, this.Today)
 	PathExistAndCreate(zipFilePath)
 	PathExistAndCreate(this.ZipSourcePath)
 }
 
-func (this *Config) printParams() {
+func (this *Config) PrintParams() {
 	LogInfo("**********************Params*********************")
 	LogInfo("svn code:", this.svnCode)
 	LogInfo("project name:", this.ProjectName)
@@ -244,8 +256,8 @@ func (this *Config) printParams() {
 
 	LogInfo("-------------------------------------")
 	LogInfo("ue exe:", this.UE_EXE)
-	LogInfo("unrealBuildTool:", this.unrealBuildTool)
-	LogInfo("automationTool:", this.automationTool)
+	LogInfo("unrealBuildTool:", this.UnrealBuildTool)
+	LogInfo("automationTool:", this.AutomationTool)
 	LogInfo("UnrealPak:", this.UnrealPak)
 
 	LogInfo("*************************************************")

@@ -45,7 +45,7 @@ type MsgBuild struct {
 	IsRelease      bool     "测试版，发布版"
 	Cookflavor     [64]byte "Android才有(ETC2...)"
 	TargetPlatform [64]byte "Android or iOS"
-	Num            byte     "总的Project数量"
+	Num            uint16   "总的Project数量"
 	PData          []byte   "所有Project"
 }
 
@@ -54,6 +54,7 @@ type Project struct {
 	Name        [255]byte
 	ProjectName [255]byte
 	Host        [255]byte
+	Account     [255]byte
 	Member      [255]byte
 	SVN         [255]byte
 	ServerState int32

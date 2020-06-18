@@ -7,7 +7,8 @@ import (
 )
 
 type MsgServerRegister struct {
-	Account     NAME_STRING "MAC地址"
+	Host        NAME_STRING "IP地址"
+	Account     NAME_STRING "服务器所在的目录名字"
 	UserID      ObjectID    "MsgConnection返回的ID"
 	SVN         [1024]byte  "SVN地址"
 	Member      [1024]byte  "通知的用户列表"

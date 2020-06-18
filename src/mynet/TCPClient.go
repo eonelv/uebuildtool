@@ -2,6 +2,7 @@
 package mynet
 
 import (
+	. "cfg"
 	. "core"
 	. "def"
 	"fmt"
@@ -57,6 +58,12 @@ func Connect() {
 	err := serverConfig.ReadServerConfig()
 	if err != nil {
 		LogError("Read server config error.")
+		config := &Config{}
+		config.ReadConfig()
+
+		LogInfo("第一次运行,修改配置文件后重启...")
+		LogInfo("输入任意字符退出")
+		fmt.Scanln()
 		return
 	}
 
@@ -72,7 +79,10 @@ func Connect() {
 	conn, err := net.DialTCP("tcp", nil, tcpAddr)
 	if err != nil {
 		LogError("Fatal error: %s", err.Error())
-		os.Exit(1)
+		LogInfo("连接失败! 重启连接服务器...")
+		LogInfo("输入任意字符退出")
+		fmt.Scanln()
+		os.Exit(2)
 	}
 
 	client := &TCPUserConn{}

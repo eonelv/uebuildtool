@@ -1,5 +1,5 @@
 // serverconfig
-package mynet
+package cfg
 
 import (
 	. "core"
@@ -15,7 +15,7 @@ type ServerConfig struct {
 	Host        string
 }
 
-const config string = `{
+const serverconfig string = `{
 	"host":"192.168.1.19"
 }`
 
@@ -34,15 +34,9 @@ func (this *ServerConfig) ReadServerConfig() error {
 	oldJson, err := utils.ReadJson(configFileName)
 	if err != nil {
 		LogError("Read config Json Failed! 1.")
-		WriteFile([]byte(config), configFileName)
-	}
-
-	oldJson, err = utils.ReadJson(configFileName)
-	if err != nil {
-		LogError("Read config Json Failed! 2.")
+		WriteFile([]byte(serverconfig), configFileName)
 		return err
 	}
-
 	ConfigDatas := oldJson.MustMap()
 	this.Host = utils.GetString(ConfigDatas, "host")
 	return nil

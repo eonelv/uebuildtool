@@ -1,10 +1,11 @@
 package message
 
 import (
+	. "cfg"
 	. "core"
 	. "def"
-	. "game"
 	"reflect"
+	"strings"
 	"utils"
 )
 
@@ -50,9 +51,16 @@ func (this *MsgConnection) Process(p interface{}) {
 		var config *Config = &Config{}
 		config.ReadConfig()
 
-		LogInfo("config:", config.GetSVNCode(), config.GetMembers())
+		LogInfo("config:", config.BuilderHome, config.GetSVNCode(), config.GetMembers())
+
+		parentFile := strings.ReplaceAll(config.BuilderHome, `\`, `/`)
+		index := strings.LastIndex(parentFile, `/`)
+		if index != -1 {
+			parentFile = Byte2String([]byte(parentFile)[index+1:])
+		}
 		msgRegisterServer.UserID = this.ID
-		CopyArray(reflect.ValueOf(&msgRegisterServer.Account), []byte(ip))
+		CopyArray(reflect.ValueOf(&msgRegisterServer.Host), []byte(ip))
+		CopyArray(reflect.ValueOf(&msgRegisterServer.Account), []byte(parentFile))
 		msgRegisterServer.IsServer = true
 		CopyArray(reflect.ValueOf(&msgRegisterServer.Member), []byte(config.GetMembers()))
 		CopyArray(reflect.ValueOf(&msgRegisterServer.ProjectName), []byte(config.ProjectName))
