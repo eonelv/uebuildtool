@@ -32,7 +32,8 @@ var BuildAndroidRes string = `uebuildtool.exe -Release=false -Patch=true -cookfl
 
 var BuildIOS string = `uebuildtool.exe -Release=false -Patch=true -targetPlatform=iOS -BuildApp=true`
 
-const svnCore string = `svn://192.168.0.24/client/ue4/ENGCore/Plugins/ENGCore/Source/ENGCore`
+const svnCore string = `svn://192.168.0.24/client/ue4/ENGCore/Plugins/ENGCore`
+const svnUnLua string = `svn://192.168.0.24/client/ue4/UnLua424/UnLua`
 
 type Config struct {
 	//配置参数
@@ -71,10 +72,15 @@ type Config struct {
 	TempPakPath          string
 	ZipSourcePath        string
 
-	Today          string
-	teamMembers    string
-	PluginCodePath string
-	SVNCore        string
+	Today              string
+	teamMembers        string
+	PluginCodePath     string
+	TempPluginCodePath string
+
+	PluginUnLuaPath     string
+	TempPluginUnLuaPath string
+	SVNCore             string
+	SVNUnLua            string
 }
 
 func (this *Config) SetMembers(v string) {
@@ -243,7 +249,12 @@ func (this *Config) BuildPath() {
 	PathExistAndCreate(this.ZipSourcePath)
 
 	this.PluginCodePath = fmt.Sprintf("%s/Plugins/ENGCore", this.ProjectHomePath)
+	this.TempPluginCodePath = fmt.Sprintf("%s/ENGCore", this.BuilderHome)
 	this.SVNCore = svnCore
+
+	this.PluginUnLuaPath = fmt.Sprintf("%s/Plugins/UnLua", this.ProjectHomePath)
+	this.TempPluginUnLuaPath = fmt.Sprintf("%s/UnLua", this.BuilderHome)
+	this.SVNUnLua = svnUnLua
 }
 
 func (this *Config) PrintParams() {

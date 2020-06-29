@@ -25,7 +25,6 @@ func GetLocalIP() (ipv4 string, err error) {
 		return
 	}
 
-	LogDebug("Get Ip")
 	// 取第一个非lo的网卡IP
 	for _, addr = range addrs {
 		// 这个网络地址是IP地址: ipv4, ipv6

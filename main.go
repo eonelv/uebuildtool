@@ -31,7 +31,7 @@ func start() {
 	for _, Address := range macAddress {
 		UpperAddress := strings.ToUpper(Address)
 		UpperAddress = strings.ReplaceAll(UpperAddress, ":", "-")
-		LogError(UpperAddress)
+
 		if _, ok := utils.AllowMacAddress[UpperAddress]; ok {
 			isAuth = true
 			break

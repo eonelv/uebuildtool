@@ -314,15 +314,32 @@ func Exec(cmdStr string, args ...string) error {
 }
 
 func exe_Inner(cmdStr string, args ...string) error {
+
+	var testString string = cmdStr
+
+	for _, a := range args {
+		testString += " "
+		testString += a
+	}
+	//LogDebug(testString)
+
 	cmd := exec.Command(cmdStr, args...)
 	output := make(chan []byte, 10240)
 	defer close(output)
 
 	stdoutPipe, err := cmd.StdoutPipe()
 	if err != nil {
+		LogDebug("get std out error:", err)
 		panic(err)
 	}
 	defer stdoutPipe.Close()
+
+	stdErrorPipe, err := cmd.StderrPipe()
+	if err != nil {
+		LogDebug("get std err error:", err)
+		panic(err)
+	}
+	defer stdErrorPipe.Close()
 
 	go func() {
 		scanner := bufio.NewScanner(stdoutPipe)
@@ -331,7 +348,15 @@ func exe_Inner(cmdStr string, args ...string) error {
 		}
 	}()
 
+	go func() {
+		scanner := bufio.NewScanner(stdErrorPipe)
+		for scanner.Scan() { // 命令在执行的过程中, 实时地获取其输出
+			LogError(string(scanner.Bytes()))
+		}
+	}()
+
 	if err := cmd.Run(); err != nil {
+		LogDebug("Run ext process error:", err)
 		panic(err)
 	}
 	return err

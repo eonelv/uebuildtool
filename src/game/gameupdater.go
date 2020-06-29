@@ -102,7 +102,7 @@ func (this *GameUpdater) DoUpdate() {
 	defer func() {
 		if err := recover(); err != nil {
 			LogError(err) //这里的err其实就是panic传入的内容
-			LogError("Process Exit")
+			LogError("GameUpdater Exit")
 		}
 	}()
 
@@ -128,8 +128,17 @@ func (this *GameUpdater) DoUpdate() {
 		this.config.BuildPath()
 	*/
 	this.config.PrintParams()
+
+	var multiThreadTask MultiThreadTask
 	//1. 更新SVN
-	this.checkOut()
+	isSvnOK := this.checkOut()
+	if !isSvnOK {
+		LogError("SVN Update Error!!!", time.Now())
+		return
+	}
+	multiThreadTask = &CopyDirTask{}
+	ExecTask(multiThreadTask, this.config.TempPluginCodePath, this.config.PluginCodePath)
+	ExecTask(multiThreadTask, this.config.TempPluginUnLuaPath, this.config.PluginUnLuaPath)
 
 	SVNDatabase := &SVNDatabase{}
 	SVNDatabase.ProjectPath = this.config.ProjectHomePath
@@ -144,8 +153,6 @@ func (this *GameUpdater) DoUpdate() {
 
 	//6. 写入代码版本号到C++（这里还需要读取Sqlite的功能，最后再加吧）
 	this.writeVersionCPP()
-
-	var multiThreadTask MultiThreadTask
 
 	if this.config.IsEncrypt {
 		LogInfo("开始加密文件")
@@ -193,7 +200,7 @@ func (this *GameUpdater) DoUpdate() {
 	multiThreadTask = &FileSpliterTask{}
 	ExecTask(multiThreadTask, this.config.TempPakPath, this.config.ZipSourcePath)
 
-	LogInfo("开始复制目录")
+	LogInfo("开始复制json&lua目录")
 	multiThreadTask = &CopyDirTask{}
 	ExecTask(multiThreadTask, this.config.ResOutputContentPath+"/Script", this.config.ZipSourcePath+"/Script")
 	ExecTask(multiThreadTask, this.config.ResOutputContentPath+"/json", this.config.ZipSourcePath+"/json")
@@ -776,28 +783,38 @@ func (this *GameUpdater) buildApp() bool {
 	return false
 }
 
-func (this *GameUpdater) checkOut() {
+func (this *GameUpdater) checkOut() bool {
 	LogInfo("**********Begin checkout svn code**********")
-	go this.svnCheckout()
+
 	this.sysChan = make(chan string)
 	defer close(this.sysChan)
+
+	go this.svnCheckout()
+
 	for {
 		select {
 		case this.svnMsg = <-this.sysChan:
-			if this.svnMsg == "end" {
-				return
+			if this.svnMsg == "error" {
+				return false
 			} else if this.svnMsg == "ok" {
 				LogInfo("Build Application. update svn complete!\r\n")
-				return
+				return true
 			}
 		case <-time.After(5 * time.Second):
 			fmt.Println("Now updating svn ..." + this.svnMsg)
 		}
 	}
-
+	return false
 }
 
 func (this *GameUpdater) svnCheckout() {
+	defer func() {
+		if err := recover(); err != nil {
+			LogError("svn update error:", err) //这里的err其实就是panic传入的内容
+			LogError("svnCheckout Exit")
+			this.sysChan <- "error"
+		}
+	}()
 	LogInfo("The next step is to update code", this.config.GetSVNCode(), this.config.ProjectName)
 	this.sysChan <- "updating code"
 
@@ -809,8 +826,14 @@ func (this *GameUpdater) svnCheckout() {
 	ExecSVNCmd("svn", "cleanup", this.config.ProjectName)
 	ExecSVNCmd("svn", "update", "--force", this.config.ProjectName, "--accept", "theirs-full")
 
+	//更新插件源码
+	ExecSVNCmd("svn", "checkout", this.config.SVNCore, this.config.TempPluginCodePath)
+	//更新UnLua源码
+	ExecSVNCmd("svn", "checkout", this.config.SVNUnLua, this.config.TempPluginUnLuaPath)
+
+	//清除插件
 	os.RemoveAll(this.config.PluginCodePath)
-	ExecSVNCmd("svn", "checkout", this.config.SVNCore, this.config.PluginCodePath)
+	os.RemoveAll(this.config.PluginUnLuaPath)
 	this.sysChan <- "ok"
 }
 
@@ -839,6 +862,10 @@ func (this *GameUpdater) clear() {
 	os.RemoveAll(this.config.JsonHome)
 	os.RemoveAll(this.config.LuaHome)
 	os.RemoveAll(this.config.PluginCodePath)
+	os.RemoveAll(this.config.TempPluginCodePath)
+
+	os.RemoveAll(this.config.PluginUnLuaPath)
+	os.RemoveAll(this.config.TempPluginUnLuaPath)
 
 	os.Remove(this.projectEncryptIniPath)
 	os.Remove(this.versionCppFilePath)
