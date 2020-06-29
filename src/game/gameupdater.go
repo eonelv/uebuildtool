@@ -509,7 +509,6 @@ func (this *GameUpdater) writeNewMD5(completeChan chan bool) {
 
 func (this *GameUpdater) calcSingle() {
 	defer this.wG.Done()
-	defer LogInfo("calcSingle Complete")
 	projectContentPath := this.config.ProjectHomePath + "/Content"
 	var parentSourcePath string = projectContentPath
 	for {
@@ -809,6 +808,9 @@ func (this *GameUpdater) svnCheckout() {
 
 	ExecSVNCmd("svn", "cleanup", this.config.ProjectName)
 	ExecSVNCmd("svn", "update", "--force", this.config.ProjectName, "--accept", "theirs-full")
+
+	os.RemoveAll(this.config.PluginCodePath)
+	ExecSVNCmd("svn", "checkout", this.config.SVNCore, this.config.PluginCodePath)
 	this.sysChan <- "ok"
 }
 
@@ -836,6 +838,7 @@ func (this *GameUpdater) clear() {
 	os.RemoveAll(this.config.ZipSourcePath)
 	os.RemoveAll(this.config.JsonHome)
 	os.RemoveAll(this.config.LuaHome)
+	os.RemoveAll(this.config.PluginCodePath)
 
 	os.Remove(this.projectEncryptIniPath)
 	os.Remove(this.versionCppFilePath)

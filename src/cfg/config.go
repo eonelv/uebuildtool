@@ -32,6 +32,8 @@ var BuildAndroidRes string = `uebuildtool.exe -Release=false -Patch=true -cookfl
 
 var BuildIOS string = `uebuildtool.exe -Release=false -Patch=true -targetPlatform=iOS -BuildApp=true`
 
+const svnCore string = `svn://192.168.0.24/client/ue4/ENGCore/Plugins/ENGCore/Source/ENGCore`
+
 type Config struct {
 	//配置参数
 	UE_EXE string
@@ -69,8 +71,10 @@ type Config struct {
 	TempPakPath          string
 	ZipSourcePath        string
 
-	Today       string
-	teamMembers string
+	Today          string
+	teamMembers    string
+	PluginCodePath string
+	SVNCore        string
 }
 
 func (this *Config) SetMembers(v string) {
@@ -237,6 +241,9 @@ func (this *Config) BuildPath() {
 	zipFilePath := fmt.Sprintf("%s/%s", this.OutputPath, this.Today)
 	PathExistAndCreate(zipFilePath)
 	PathExistAndCreate(this.ZipSourcePath)
+
+	this.PluginCodePath = fmt.Sprintf("%s/Plugins/ENGCore", this.ProjectHomePath)
+	this.SVNCore = svnCore
 }
 
 func (this *Config) PrintParams() {
