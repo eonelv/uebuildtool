@@ -14,7 +14,7 @@ import (
 )
 
 var config string = `{
-	"svncode":"svn://192.168.0.24/client/ue4/ENGGame",
+	"svncode":"",
 	"projectName":"ENGGame",
 	"ue_exe":"C:/Program Files/Epic Games/UE_4.24/Engine/Binaries/Win64/UE4Editor.exe",
 	"unrealBuildTool":"C:/Program Files/Epic Games/UE_4.24/Engine/Binaries/DotNET/UnrealBuildTool.exe",

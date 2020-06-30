@@ -58,10 +58,20 @@ func Connect() {
 	err := serverConfig.ReadServerConfig()
 	if err != nil {
 		LogError("Read server config error.")
+
 		config := &Config{}
 		config.ReadConfig()
-
 		LogInfo("第一次运行,修改配置文件后重启...")
+		LogInfo("请修改config/config.json中的配置")
+		LogInfo("输入任意字符退出")
+		fmt.Scanln()
+		return
+	}
+
+	config := &Config{}
+	config.ReadConfig()
+	if config.GetSVNCode() == "" {
+		LogInfo("请修改config/config.json中的svn配置")
 		LogInfo("输入任意字符退出")
 		fmt.Scanln()
 		return
