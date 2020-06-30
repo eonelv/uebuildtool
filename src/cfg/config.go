@@ -35,52 +35,88 @@ var BuildIOS string = `uebuildtool.exe -Release=false -Patch=true -targetPlatfor
 const svnCore string = `svn://192.168.0.24/client/ue4/ENGCore/Plugins/ENGCore`
 const svnUnLua string = `svn://192.168.0.24/client/ue4/UnLua424/UnLua`
 
+const (
+	iOS     string = "iOS"
+	Android string = "Andoird"
+)
+
 type Config struct {
 	//配置参数
+	//Unreal Editor full path
 	UE_EXE string
 	//UnrealPak工具路径
 	UnrealPak       string
 	AutomationTool  string
 	UnrealBuildTool string
 
+	//项目代码SVN路径
 	svnCode string
 
-	BuilderHome     string
+	//编译程序运行目录
+	BuilderHome string
+	//配置文件目录
 	ConfigHome      string
 	ProjectHomePath string
-	ProjectName     string
 
+	//项目文件名称 - xxx.uproject
+	ProjectName string
+
+	//项目中json文件目录 - 位于Content
 	JsonHome string
-	LuaHome  string
 
-	CookPlatformType string //Android_ETC2
+	//项目中Lua文件目录 - 位于Content名字为Script
+	LuaHome string
 
-	//"外网包"
-	IsPatch     bool
-	IsRelease   bool
-	IsApp       bool
+	//Android_ETC2
+	CookPlatformType string
+
+	//编译参数
+	//是否外网包
+	IsPatch bool
+	//是否发布版
+	IsRelease bool
+	//是否编译App
+	IsApp bool
+	//控制是否调用BuildFirst(现在都需要调用.虽然会让编译时间变长,但可以解决修改了C++父类导致蓝图不能编译的问题)
 	IsDebugTool bool
-	IsEncrypt   bool
+	//是否加密 - 由于demo项目与正式项目代码不同，采用不加密方式
+	IsEncrypt bool
 
-	targetPlatform string //Android / iOS
-	cookflavor     string //ETC2
+	//Android / iOS
+	targetPlatform string
+	//ETC2
+	cookflavor string
 
 	//输出目录
-	CookedPath           string
+	//Cook之后文件的目录
+	CookedPath string
+	//编译结果目录 - Android和iOS不一样
 	OutputPath           string
 	ResOutputContentPath string
-	TempPakPath          string
-	ZipSourcePath        string
 
-	Today              string
-	teamMembers        string
-	PluginCodePath     string
+	//Pak文件输出目录 - 用作更新文件拆分的源目录
+	TempPakPath string
+
+	//需要打包的文件目录 - 待更新的json或lua、Pak拆分文件
+	ZipSourcePath string
+
+	Today string
+
+	//编译通知成员
+	teamMembers string
+
+	//ENGCore插件目录 - 在项目的Plugin下
+	PluginCodePath string
+	//ENGCore插件SVN更新的临时目录 - 更新完之后复制到项目插件目录进行编译
 	TempPluginCodePath string
 
-	PluginUnLuaPath     string
+	//UnLua插件目录 - 在项目的Plugin下
+	PluginUnLuaPath string
+	//UnLua插件SVN更新的临时目录 - 更新完之后复制到项目插件目录进行编译
 	TempPluginUnLuaPath string
-	SVNCore             string
-	SVNUnLua            string
+
+	SVNCore  string
+	SVNUnLua string
 }
 
 func (this *Config) SetMembers(v string) {
@@ -93,8 +129,8 @@ func (this *Config) GetMembers() string {
 
 func (this *Config) SetTargetPlatform(v string) {
 	this.targetPlatform = v
-	if this.targetPlatform == "iOS" {
-		this.CookPlatformType = "iOS"
+	if this.targetPlatform == iOS {
+		this.CookPlatformType = iOS
 	} else {
 		this.CookPlatformType = fmt.Sprintf("%s_%s", this.targetPlatform, this.cookflavor)
 	}
@@ -120,6 +156,8 @@ func (this *Config) GetSVNCode() string {
 	return this.svnCode
 }
 
+//读取config配置文件
+//其中读取命令行参数已经无效 - 通过消息设置编译参数
 func (this *Config) ReadConfig() error {
 
 	t := time.Now()
@@ -174,11 +212,11 @@ func (this *Config) ReadConfig() error {
 	this.IsRelease = false
 	this.IsApp = false
 	this.CookPlatformType = "Android_ETC2"
-	this.targetPlatform = "Android"
+	this.targetPlatform = Android
 	this.cookflavor = "ETC2"
 
-	this.targetPlatform = "iOS"
-	this.CookPlatformType = "iOS"
+	this.targetPlatform = iOS
+	this.CookPlatformType = iOS
 
 	lenParam := len(os.Args)
 
@@ -206,8 +244,8 @@ func (this *Config) ReadConfig() error {
 			LogError("Unkown Param:", line)
 		}
 	}
-	if this.targetPlatform == "iOS" {
-		this.CookPlatformType = "iOS"
+	if this.targetPlatform == iOS {
+		this.CookPlatformType = iOS
 	} else {
 		this.CookPlatformType = fmt.Sprintf("%s_%s", this.targetPlatform, this.cookflavor)
 	}
@@ -229,7 +267,7 @@ func (this *Config) BuildPath() {
 	this.LuaHome = fmt.Sprintf("%s/Content/Script", this.ProjectHomePath)
 
 	this.CookedPath = fmt.Sprintf("%s/Saved/Cooked/%s/%s/Content", this.ProjectHomePath, this.CookPlatformType, this.ProjectName)
-	if this.targetPlatform == "iOS" {
+	if this.targetPlatform == iOS {
 		this.OutputPath = fmt.Sprintf("%s/APack_iOS", this.BuilderHome)
 		this.ConfigHome = fmt.Sprintf("%s/config/iOS", this.BuilderHome)
 	} else {

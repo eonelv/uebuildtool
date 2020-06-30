@@ -39,14 +39,21 @@ const (
 )
 
 type MsgBuild struct {
-	Action         uint16
-	IsPatch        bool     ""
-	IsBuildApp     bool     "是否编译App"
-	IsRelease      bool     "测试版，发布版"
-	Cookflavor     [64]byte "Android才有(ETC2...)"
-	TargetPlatform [64]byte "Android or iOS"
-	Num            uint16   "总的Project数量"
-	PData          []byte   "所有Project"
+	Action uint16
+	//"isPath"是tag, 在反射里会用到. 如果需要处理反射，可以添加tag
+	IsPatch bool "isPath"
+	//"是否编译App"
+	IsBuildApp bool
+	//"测试版，发布版"
+	IsRelease bool
+	//"Android才有(ETC2...)"
+	Cookflavor [64]byte
+	//"Android or iOS"
+	TargetPlatform [64]byte
+	//"总的Project数量"
+	Num uint16
+	//"所有Project"
+	PData []byte
 }
 
 type Project struct {

@@ -1,4 +1,6 @@
-// jsonandlua
+//创建并行的加密任务
+//继承BaseMultiThreadTask
+//采用统一的多协程任务处理模板 - 见multitask.go
 package game
 
 import (

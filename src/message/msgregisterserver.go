@@ -7,13 +7,20 @@ import (
 )
 
 type MsgServerRegister struct {
-	Host        NAME_STRING "IP地址"
-	Account     NAME_STRING "服务器所在的目录名字"
-	UserID      ObjectID    "MsgConnection返回的ID"
-	SVN         [1024]byte  "SVN地址"
-	Member      [1024]byte  "通知的用户列表"
-	ProjectName NAME_STRING "项目名称"
-	IsServer    bool        "是编译服务器还是用户"
+	//"IP地址"
+	Host NAME_STRING
+	//"服务器所在的目录名字"
+	Account NAME_STRING
+	//"MsgConnection返回的ID"
+	UserID ObjectID
+	//"SVN地址"
+	SVN [1024]byte
+	//"通知的用户列表"
+	Member [1024]byte
+	//"项目名称"
+	ProjectName NAME_STRING
+	//"是编译服务器还是用户"
+	IsServer bool
 }
 
 func registerNetMsgRegisterServer() {

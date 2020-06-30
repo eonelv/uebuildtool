@@ -8,8 +8,10 @@ import (
 )
 
 type MsgBindServer struct {
-	Account NAME_STRING "MAC地址"
-	UserID  ObjectID    "MsgConnection返回的ID"
+	//"MAC地址"
+	Account NAME_STRING
+	//"MsgConnection返回的ID"
+	UserID ObjectID
 }
 
 func registerNetMsgBindServer() {

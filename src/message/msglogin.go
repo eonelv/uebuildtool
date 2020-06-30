@@ -8,9 +8,12 @@ import (
 )
 
 type MsgLogin struct {
-	Account  NAME_STRING "MAC地址"
-	UserID   ObjectID    "MsgConnection返回的ID"
-	IsServer bool        "是编译服务器还是用户"
+	//"MAC地址"
+	Account NAME_STRING
+	//"MsgConnection返回的ID"
+	UserID ObjectID
+	//"是编译服务器还是用户"
+	IsServer bool
 }
 
 func registerNetMsgLogin() {

@@ -23,7 +23,7 @@ func (this *TCPUserConn) close() {
 }
 
 func (this *TCPUserConn) processMessage(header *PackHeader, datas []byte) {
-	LogDebug("receive cmd", header.Cmd)
+	//LogDebug("receive cmd", header.Cmd)
 	if header.Cmd == CMD_CONNECTION {
 		msg := &Command{header.Cmd, datas, nil, nil}
 		defer func() {
@@ -121,7 +121,7 @@ func Connect() {
 func ProcessRecv(handler *TCPUserConn) {
 	defer func() {
 		if err := recover(); err != nil {
-			LogError(err) //这里的err其实就是panic传入的内容
+			LogError(err)
 		}
 	}()
 	conn := handler.Conn
@@ -139,7 +139,7 @@ func ProcessRecv(handler *TCPUserConn) {
 		header := &PackHeader{}
 		Byte2Struct(reflect.ValueOf(header), headerBytes)
 
-		LogDebug("Header", header.Cmd, header.Length, header.Tag, header.Version)
+		//LogDebug("Header", header.Cmd, header.Length, header.Tag, header.Version)
 		bodyBytes := make([]byte, header.Length-HEADER_LENGTH)
 		_, err = io.ReadFull(conn, bodyBytes)
 		if err != nil {
