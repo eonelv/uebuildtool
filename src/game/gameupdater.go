@@ -154,7 +154,7 @@ func (this *GameUpdater) DoUpdate() {
 	//6. 写入代码版本号到C++（这里还需要读取Sqlite的功能，最后再加吧）
 	this.writeVersionCPP()
 
-	if this.config.IsEncrypt {
+	if this.config.IsEncrypt() {
 		LogInfo("开始加密文件")
 		multiThreadTask = &EncryptJsonTask{}
 		ExecTask(multiThreadTask, this.config.JsonHome, "")
@@ -277,7 +277,7 @@ func (this *GameUpdater) processReslist() error {
 	this.Reslist.configHome = this.config.ConfigHome
 	this.Reslist.ZipSourcePakPath = this.config.ZipSourcePath
 	this.Reslist.IsPatch = this.config.IsPatch
-	this.Reslist.IsEncrypt = this.config.IsEncrypt
+	this.Reslist.IsEncrypt = this.config.IsEncrypt()
 
 	this.Reslist.ReadData()
 	return nil
@@ -434,7 +434,7 @@ func (this *GameUpdater) go_CopyFile() {
 	for {
 		select {
 		case s := <-this.chanWattingCopyFileName:
-			if this.config.IsEncrypt && (strings.HasSuffix(s.relName, ".json") || strings.HasSuffix(s.relName, ".lua")) {
+			if this.config.IsEncrypt() && (strings.HasSuffix(s.relName, ".json") || strings.HasSuffix(s.relName, ".lua")) {
 				CopyFileAndCompress(s.sourceParentPath+"/"+s.relName, this.config.ResOutputContentPath+"/"+s.relName)
 			} else {
 				CopyFile(s.sourceParentPath+"/"+s.relName, this.config.ResOutputContentPath+"/"+s.relName)
@@ -897,7 +897,9 @@ func (this *GameUpdater) sendReport() {
 	}
 
 	timePassed := time.Now().Unix() - this.beginTime.Unix()
-	msgtemp += fmt.Sprintf(". 耗时:%ds", timePassed)
+
+	timeString := fmt.Sprintf(". 耗时:%dh:%dm:%ds(%ds).", timePassed/60/60, timePassed%3600/60, timePassed%3600%60, timePassed)
+	msgtemp += timeString
 	//生成client 参数为默认
 	client := &http.Client{}
 
@@ -926,7 +928,7 @@ func (this *GameUpdater) sendReport() {
 	LogInfo("---------------------------------")
 	LogInfo("-------Build Complete!!!---------")
 	LogInfo("-------time:", time.Unix(time.Now().Unix(), 0).Format("2006-01-02 15:04:05"))
-	LogInfo("-------Total seconds:", timePassed)
+	LogInfo("-------Total Time", timeString)
 	LogInfo("---------------------------------")
 }
 
