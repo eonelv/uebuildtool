@@ -20,9 +20,9 @@ func initLog() {
 	var logger ELogger
 	log.SetOutput(&logger)
 
-	os.MkdirAll(logPath+"/I", os.ModeDir)
-	os.MkdirAll(logPath+"/D", os.ModeDir)
-	os.MkdirAll(logPath+"/E", os.ModeDir)
+	os.MkdirAll(logPath+"/I", os.ModePerm)
+	os.MkdirAll(logPath+"/D", os.ModePerm)
+	os.MkdirAll(logPath+"/E", os.ModePerm)
 }
 
 func LogInfo(v ...interface{}) {
@@ -67,6 +67,6 @@ func (this *ELogger) Write(p []byte) (int, error) {
 		os.Stdout.Write([]byte(fmt.Sprintf("can not open log file:%s r:%v\n", fileName, err)))
 		return 0, err
 	}
-
+	defer file.Close()
 	return file.Write(p)
 }
