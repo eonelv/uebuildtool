@@ -80,7 +80,7 @@ type Config struct {
 	//控制是否调用BuildFirst(现在都需要调用.虽然会让编译时间变长,但可以解决修改了C++父类导致蓝图不能编译的问题)
 	IsDebugTool bool
 	//是否加密 - 由于demo项目与正式项目代码不同，采用不加密方式
-	IsEncrypt bool
+	isEncrypt bool
 
 	//Android / iOS
 	targetPlatform string
@@ -156,6 +156,10 @@ func (this *Config) GetSVNCode() string {
 	return this.svnCode
 }
 
+func (this *Config) IsEncrypt() bool {
+	return this.isEncrypt && this.IsPatch && this.IsRelease
+}
+
 //读取config配置文件
 //其中读取命令行参数已经无效 - 通过消息设置编译参数
 func (this *Config) ReadConfig() error {
@@ -206,7 +210,7 @@ func (this *Config) ReadConfig() error {
 	//如果改成网络或者参数传入 修改下面代码
 	this.IsPatch = utils.GetInt(ConfigDatas, "isPatch") == 1
 	this.IsDebugTool = utils.GetInt(ConfigDatas, "isDebugTool") == 1
-	this.IsEncrypt = utils.GetInt(ConfigDatas, "isEncrypt") == 1
+	this.isEncrypt = utils.GetInt(ConfigDatas, "isEncrypt") == 1
 
 	//外部传入
 	this.IsRelease = false
