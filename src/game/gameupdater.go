@@ -36,7 +36,8 @@ GameVersion::~GameVersion()
 }
 
 int GameVersion::Version = %d;
-FString GameVersion::EncryptKey = TEXT("%s");`
+FString GameVersion::EncryptKey = TEXT("%s");
+bool GameVersion::IsEncrypt = %v;`
 
 type SMD5 struct {
 	relName          string
@@ -647,7 +648,7 @@ func (this *GameUpdater) cookDatas() {
 }
 
 func (this *GameUpdater) writeVersionCPP() {
-	code := fmt.Sprintf(codetemp, time.Now(), this.version, pakEncryptKey)
+	code := fmt.Sprintf(codetemp, time.Now(), this.version, pakEncryptKey, this.config.IsEncrypt())
 	this.versionCppFilePath = fmt.Sprintf("%s/Source/%s/GameVersion.cpp", this.config.ProjectHomePath, this.config.ProjectName)
 	WriteFile([]byte(code), this.versionCppFilePath)
 }
@@ -859,8 +860,12 @@ func (this *GameUpdater) clear() {
 	os.RemoveAll(this.config.ResOutputContentPath)
 	os.RemoveAll(this.config.TempPakPath)
 	os.RemoveAll(this.config.ZipSourcePath)
+
+	//Lua & Json可能是加密过的，所以要删除. 下次编译重新更新
 	os.RemoveAll(this.config.JsonHome)
 	os.RemoveAll(this.config.LuaHome)
+
+	//插件使用完之后也要删除. 下次编译重新更新
 	os.RemoveAll(this.config.PluginCodePath)
 	os.RemoveAll(this.config.TempPluginCodePath)
 

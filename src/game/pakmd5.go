@@ -102,7 +102,7 @@ func (this *PakMD5Task) ProcessTask(DestFileDir string) {
 }
 
 func (this *PakMD5) CalcMD5(Reslist *Reslist, numCPU int, path string, isPatch bool, version int64) {
-	LogInfo("**********Begin calcNewMD5**********", path)
+	LogInfo("**********Begin calc New MD5 for pak**********", path)
 	this.numCPU = numCPU
 	this.isPatch = isPatch
 	this.Reslist = Reslist
@@ -125,11 +125,14 @@ func (this *PakMD5) CalcMD5(Reslist *Reslist, numCPU int, path string, isPatch b
 	ExecTask(multiThreadTask, path, "")
 
 	completeChan <- true
-	LogInfo("**********CalcNewMD5 Complete**********")
+	LogInfo("**********Calc NewMD5 for pak Complete**********")
 
 	this.writeReslist()
 }
 
+//最重要的问题：
+//1. 内网和外网包pakIndex怎么处理
+//2. 内网和外网包的version怎么处理
 func (this *PakMD5) writeReslist() {
 	var pname string
 	var gJson *simplejson.Json
@@ -214,6 +217,8 @@ func (this *PakMD5) writeReslist() {
 			}
 
 		} else {
+			//如果不是分part文件(原始的pak文件、json、lua)
+			//查找pak的组名
 			pnameIndex = strings.LastIndex(Key, "_p_")
 			if pnameIndex != -1 {
 				pname = Key[:pnameIndex]
@@ -239,51 +244,17 @@ func (this *PakMD5) writeReslist() {
 			if !ok {
 				gJson = simplejson.New()
 			}
+			//设置新创建的项目到对应发父组下
+			//{
+			//	"a":{
+			//		"a_p_5.pak":{
+			//			"md5":"xxx",
+			//			"version":1001
+			//		}
+			//}
 			gJson.Set(d.name, item.MustMap())
 			this.Reslist.ReslistData.Set(pname, gJson.MustMap())
 		}
-		/*
-			pnameIndex = strings.LastIndex(Key, "_p_")
-			if pnameIndex != -1 {
-				pname = Key[:pnameIndex]
-			} else {
-				pname = Key
-			}
-			json, ok := this.Reslist.ReslistData.CheckGet(pname)
-			item := simplejson.New()
-			d := this.MD5[Key]
-			item.Set("name", d.name)
-
-			//TODO 好像没什么用
-			item.Set("pname", d.pname)
-			item.Set("version", d.ResVesion)
-			if d.pakVersion != 0 {
-				item.Set("pakversion", d.pakVersion)
-			}
-
-			item.Set("size", d.size)
-			item.Set("md5", d.md5)
-			//如果没有找到pName
-			if !ok {
-				json = &simplejson.Json{}
-				this.Reslist.ReslistData.Set(pname, pJson)
-			} else {
-				json.Set(d.name, item)
-				this.Reslist.ReslistData.Set(pname, json)
-			}
-			if !ok {
-				itemArray := []*simplejson.Json{item}
-				this.Reslist.ReslistData.Set(pname, itemArray)
-			} else {
-				itemArray := json.MustArray()
-				if this.isPatch && d.pakVersion != 0 {
-					itemArray = append(itemArray, item)
-				} else {
-					itemArray[0] = item
-				}
-				this.Reslist.ReslistData.Set(pname, itemArray)
-			}
-		*/
 	}
 }
 

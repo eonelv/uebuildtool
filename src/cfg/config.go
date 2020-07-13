@@ -311,7 +311,6 @@ func (this *Config) PrintParams() {
 
 	LogInfo("IsPatch:", this.IsPatch)
 	LogInfo("IsRelease:", this.IsRelease)
-	LogInfo("IsPatch:", this.IsPatch)
 	LogInfo("IsApp:", this.IsApp)
 
 	LogInfo("-------------------------------------")
