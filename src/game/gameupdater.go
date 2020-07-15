@@ -162,14 +162,14 @@ func (this *GameUpdater) DoUpdate() {
 		ExecTask(multiThreadTask, this.config.LuaHome, "")
 	}
 
+	//1. 在C++代码被修改之后，特别是蓝图父类，会丢失蓝图，必须重新check一次代码，所以更新完马上编译
+	//这种情况必须要重编C++代码
+	//2. ENGCore.UnLua插件是时时编译的，所以需要重编C++代码
+	if !this.config.IsDebugTool {
+		LogInfo("Begin Build First!")
+		this.buildFirst()
+	}
 	if this.config.IsApp {
-		//在C++代码被修改之后，特别是蓝图父类，会丢失蓝图，必须重新check一次代码，所以更新完马上编译
-		//这种情况必须要重编App
-		if !this.config.IsDebugTool {
-			LogInfo("Begin Build First!")
-			this.buildFirst()
-		}
-
 		//7. 生成App
 		okApp := this.buildApp()
 		if !okApp {
@@ -222,6 +222,13 @@ func (this *GameUpdater) DoUpdate() {
 		return
 	}
 
+	//5. 写入Version.json文件
+	okVersion := this.writeVersion(oldJson)
+	if !okVersion {
+		this.Reslist.Reverse()
+		this.clearWhenError()
+	}
+
 	//打包pak到输出目录
 	okZip := this.zipSpPackage()
 	if !okZip {
@@ -229,18 +236,15 @@ func (this *GameUpdater) DoUpdate() {
 		this.clearWhenError()
 		return
 	}
-
-	//5. 写入Version.json文件
-	okVersion := this.writeVersion(oldJson)
-	if !okVersion {
-		this.Reslist.Reverse()
-		this.clearWhenError()
-	}
 }
 
 func (this *GameUpdater) zipSpPackage() bool {
 	zipFilePath := fmt.Sprintf("%s/%s", this.config.OutputPath, this.today)
-	this.outZipFileName = fmt.Sprintf("%s/res_%s_v%d.zip", zipFilePath, this.today, this.version)
+	prefixPatch := ""
+	if this.config.IsPatch {
+		prefixPatch = "sp_"
+	}
+	this.outZipFileName = fmt.Sprintf("%s/%sres_%s_v%d.zip", zipFilePath, prefixPatch, this.today, this.version)
 
 	if this.checkAvalibleZipFile(this.config.ZipSourcePath) != 0 {
 		err := Zip(this.config.ZipSourcePath, this.outZipFileName)
@@ -768,7 +772,11 @@ func (this *GameUpdater) buildApp() bool {
 		if strings.Contains(name, ".apk") || strings.Contains(name, ".ipa") {
 			index := strings.LastIndex(name, ".")
 
-			this.outAppFileName = fmt.Sprintf("%s/%s_v%d.%s", zipFilePath, name[:index], this.version, name[index+1:])
+			prefixPatch := ""
+			if this.config.IsPatch {
+				prefixPatch = "sp_"
+			}
+			this.outAppFileName = fmt.Sprintf("%s/%s%s_v%d.%s", zipFilePath, prefixPatch, name[:index], this.version, name[index+1:])
 			CopyFile(achieveDir+"/"+fi.Name(), this.outAppFileName)
 		}
 	}
@@ -850,6 +858,11 @@ func (this *GameUpdater) writeVersion(oldJson *simplejson.Json) bool {
 	errWrite := WriteFile(Bytes, this.config.ConfigHome+"/version.json")
 	if errWrite != nil {
 		LogError("Write version.json Error!", errWrite)
+		return false
+	}
+	errWrite = WriteFile(Bytes, fmt.Sprintf("%s/version_%d.json", this.config.ZipSourcePath, this.version))
+	if errWrite != nil {
+		LogError("Write version.json to package Error!", errWrite)
 		return false
 	}
 	return true
