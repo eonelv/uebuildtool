@@ -827,13 +827,16 @@ func (this *GameUpdater) svnCheckout() {
 	LogInfo("The next step is to update code", this.config.GetSVNCode(), this.config.ProjectName)
 	this.sysChan <- "updating code"
 
-	ok, _ := PathExists(this.config.ProjectName)
-	if !ok {
-		ExecSVNCmd("svn", "checkout", this.config.GetSVNCode(), this.config.ProjectName)
-	}
+	//内网才需要更新项目代码
+	if !this.config.IsPatch {
+		ok, _ := PathExists(this.config.ProjectName)
+		if !ok {
+			ExecSVNCmd("svn", "checkout", this.config.GetSVNCode(), this.config.ProjectName)
+		}
 
-	ExecSVNCmd("svn", "cleanup", this.config.ProjectName)
-	ExecSVNCmd("svn", "update", "--force", this.config.ProjectName, "--accept", "theirs-full")
+		ExecSVNCmd("svn", "cleanup", this.config.ProjectName)
+		ExecSVNCmd("svn", "update", "--force", this.config.ProjectName, "--accept", "theirs-full")
+	}
 
 	//更新插件源码
 	ExecSVNCmd("svn", "checkout", this.config.SVNCore, this.config.TempPluginCodePath)
