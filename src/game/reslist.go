@@ -14,6 +14,8 @@ import (
 type Reslist struct {
 	configHome       string
 	ZipSourcePakPath string
+	reslistPath      string
+	pakversionPath   string
 	IsPatch          bool
 	IsEncrypt        bool
 	ReslistData      *simplejson.Json
@@ -26,11 +28,14 @@ type Reslist struct {
 func (this *Reslist) ReadData() {
 	this.mutex = sync.RWMutex{}
 
-	reslistJson, err := utils.ReadJson(this.configHome + "/reslist.json")
+	this.reslistPath = fmt.Sprintf("%s/reslist.json", this.configHome)
+	this.pakversionPath = fmt.Sprintf("%s/pakversion.json", this.configHome)
+
+	reslistJson, err := utils.ReadJson(this.reslistPath)
 	if err != nil {
 		reslistJson = simplejson.New()
 	}
-	pakVersionJson, err := utils.ReadJson(this.configHome + "/pakversion.json")
+	pakVersionJson, err := utils.ReadJson(this.pakversionPath)
 	if err != nil {
 		pakVersionJson = simplejson.New()
 	}
@@ -48,8 +53,7 @@ func (this *Reslist) GetPakIndex(key string) int64 {
 
 	if index == 0 {
 		index = 5
-	}
-	if this.IsPatch {
+	} else {
 		index++
 	}
 	this.PakVersionData.Set(key, index)
@@ -83,16 +87,18 @@ func (this *Reslist) Flush(version int64) error {
 	}
 	//本地缓存
 	//先备份
-	reslistFileName := fmt.Sprintf("%s/reslist.json", this.configHome)
 	backupReslistFileName := fmt.Sprintf("%s/reslist_back.json", this.configHome)
-	CopyFile(reslistFileName, backupReslistFileName)
+	CopyFile(this.reslistPath, backupReslistFileName)
 
-	err = WriteFile(Bytes, reslistFileName)
+	err = WriteFile(Bytes, this.reslistPath)
 	if err != nil {
-		LogError("Writereslist.json Error!", err)
+		LogError("Write reslist.json Error!", err)
 		return err
 	}
 
+	if !this.IsPatch {
+		return nil
+	}
 	Bytes, err1 := this.PakVersionData.MarshalJSON()
 	if err1 != nil {
 		LogError("Read Json Data Error!", err)
@@ -105,11 +111,10 @@ func (this *Reslist) Flush(version int64) error {
 		return err
 	}
 	//本地缓存
-	pakversionFileName := fmt.Sprintf("%s/pakversion.json", this.configHome)
 	backuppakversionName := fmt.Sprintf("%s/pakversion_back.json", this.configHome)
-	CopyFile(pakversionFileName, backuppakversionName)
+	CopyFile(this.pakversionPath, backuppakversionName)
 
-	err = WriteFile(Bytes, pakversionFileName)
+	err = WriteFile(Bytes, this.pakversionPath)
 	if err != nil {
 		LogError("Write reslist.json Error!", err)
 		return err
@@ -118,11 +123,12 @@ func (this *Reslist) Flush(version int64) error {
 }
 
 func (this *Reslist) Reverse() {
-	reslistFileName := fmt.Sprintf("%s/reslist.json", this.configHome)
-	backupReslistFileName := fmt.Sprintf("%s/reslist_back.json", this.configHome)
-	CopyFile(backupReslistFileName, reslistFileName)
 
-	pakversionFileName := fmt.Sprintf("%s/pakversion.json", this.configHome)
-	backuppakversionName := fmt.Sprintf("%s/pakversion_back.json", this.configHome)
-	CopyFile(backuppakversionName, pakversionFileName)
+	backupReslistFileName := fmt.Sprintf("%s/reslist_back.json", this.configHome)
+	CopyFile(backupReslistFileName, this.reslistPath)
+
+	if this.IsPatch {
+		backuppakversionName := fmt.Sprintf("%s/pakversion_back.json", this.configHome)
+		CopyFile(backuppakversionName, this.pakversionPath)
+	}
 }
