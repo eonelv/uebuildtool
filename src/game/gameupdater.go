@@ -202,7 +202,13 @@ func (this *GameUpdater) DoUpdate() {
 	ExecTask(multiThreadTask, this.config.TempPakPath, this.config.ZipSourcePath)
 
 	LogInfo("开始复制json&lua目录")
-	multiThreadTask = &CopyDirTask{}
+	copyJsonTask := &CopyDirTask{}
+	multiThreadTask = copyJsonTask
+	//如果是发布版，修改文件名(这里只需要修改文件名就可以了，版本号在reslist.json里面有)
+	//项目代码在更新的时候，URL文件名加载对应的版本号即可
+	if this.config.IsPatch {
+		copyJsonTask.TargetNamePostfix = fmt.Sprintf("_%d", this.version)
+	}
 	ExecTask(multiThreadTask, this.config.ResOutputContentPath+"/Script", this.config.ZipSourcePath+"/Script")
 	ExecTask(multiThreadTask, this.config.ResOutputContentPath+"/json", this.config.ZipSourcePath+"/json")
 
@@ -388,6 +394,12 @@ func (this *GameUpdater) buildPak() {
 }
 
 func (this *GameUpdater) go_build() {
+	defer func() {
+		if err := recover(); err != nil {
+			LogError(err) //这里的err其实就是panic传入的内容
+			LogError("GameUpdater Exit")
+		}
+	}()
 	defer this.wG.Done()
 	for {
 		select {
@@ -832,6 +844,12 @@ func (this *GameUpdater) svnCheckout() {
 		ok, _ := PathExists(this.config.ProjectName)
 		if !ok {
 			ExecSVNCmd("svn", "checkout", this.config.GetSVNCode(), this.config.ProjectName)
+		} else {
+			//这里原来是在clear清理
+			//现在外网包不更新代码了，放到这里清理
+			os.Remove(this.projectEncryptIniPath)
+			os.Remove(this.versionCppFilePath)
+			os.Remove(this.sourceGameConfigPath)
 		}
 
 		ExecSVNCmd("svn", "cleanup", this.config.ProjectName)
@@ -887,10 +905,6 @@ func (this *GameUpdater) clear() {
 
 	os.RemoveAll(this.config.PluginUnLuaPath)
 	os.RemoveAll(this.config.TempPluginUnLuaPath)
-
-	os.Remove(this.projectEncryptIniPath)
-	os.Remove(this.versionCppFilePath)
-	os.Remove(this.sourceGameConfigPath)
 }
 
 func (this *GameUpdater) sendReport() {
