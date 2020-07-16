@@ -18,7 +18,8 @@ import (
 
 type CopyDirTask struct {
 	BaseMultiThreadTask
-	channel chan *MKeyValue
+	channel           chan *MKeyValue
+	TargetNamePostfix string
 }
 
 func (this *CopyDirTask) CreateChan() {
@@ -53,7 +54,7 @@ func (this *CopyDirTask) ProcessTask(DestFileDir string) {
 	for {
 		select {
 		case s := <-this.channel:
-			CopyFile(s.Key, DestFileDir+"/"+s.Value)
+			CopyFile(s.Key, DestFileDir+"/"+s.Value+this.TargetNamePostfix)
 		case <-time.After(1 * time.Second):
 			return
 		}
