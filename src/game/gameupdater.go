@@ -106,9 +106,8 @@ func (this *GameUpdater) DoUpdate() {
 			LogError("GameUpdater Exit")
 		}
 	}()
-
-	defer this.clear()
 	defer this.sendReport()
+	defer this.clear()
 
 	LogInfo("")
 	LogInfo("---------------------------------")
