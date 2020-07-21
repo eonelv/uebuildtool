@@ -1,4 +1,9 @@
-// config
+// Cook之后的文件：
+// 1. 经过MD5对比,将需要更新的文件复制到ResOutputContentPath
+// 2. 将ResOutputContentPath内的文件打包pak到TempPakPath
+// 3. 拆分pak文件到ZipSourcePath
+// 4. 复制Lua & Json到ZipSourcePath
+// 5. 生成压缩包
 package cfg
 
 import (
@@ -54,6 +59,8 @@ type Config struct {
 
 	//编译程序运行目录
 	BuilderHome string
+	//运行过程中用到的临时源文件目录
+	TempFileHome string
 	//配置文件目录
 	ConfigHome      string
 	ProjectHomePath string
@@ -66,6 +73,10 @@ type Config struct {
 
 	//项目中Lua文件目录 - 位于Content名字为Script
 	LuaHome string
+
+	//加密之前的原始资源临时缓存目录，编译完之后复制回项目的content目录
+	TempJsonHome string
+	TempLuaHome  string
 
 	//Android_ETC2
 	CookPlatformType string
@@ -91,7 +102,10 @@ type Config struct {
 	//Cook之后文件的目录
 	CookedPath string
 	//编译结果目录 - Android和iOS不一样
-	OutputPath           string
+	OutputPath string
+
+	//Cook之后, 所有需要更新的资源经过MD5对比都放到这里
+	//需要打包成pak的资源、json、lua
 	ResOutputContentPath string
 
 	//Pak文件输出目录 - 用作更新文件拆分的源目录
@@ -117,6 +131,10 @@ type Config struct {
 
 	SVNCore  string
 	SVNUnLua string
+
+	ProjectEncryptIniPath string
+	VersionCppFilePath    string
+	SourceGameConfigPath  string
 }
 
 func (this *Config) SetMembers(v string) {
@@ -175,6 +193,7 @@ func (this *Config) ReadConfig() error {
 		this.BuilderHome = "E:/golang/uebuildtool"
 	}
 
+	this.TempFileHome = fmt.Sprintf("%s/TempFile", this.BuilderHome)
 	this.ConfigHome = fmt.Sprintf("%s/config", this.BuilderHome)
 	PathExistAndCreate(this.ConfigHome)
 	configFileName := this.ConfigHome + "/config.json"
@@ -258,17 +277,19 @@ func (this *Config) ReadConfig() error {
 }
 
 func (this *Config) BuildPath() {
-	TempPackHome := fmt.Sprintf("%s/APack_iOS", this.BuilderHome)
-	PathExistAndCreate(TempPackHome)
+	PackHome := fmt.Sprintf("%s/APack_iOS", this.BuilderHome)
+	PathExistAndCreate(PackHome)
 
-	TempPackHome = fmt.Sprintf("%s/APack_Android", this.BuilderHome)
-	PathExistAndCreate(TempPackHome)
+	PackHome = fmt.Sprintf("%s/APack_Android", this.BuilderHome)
+	PathExistAndCreate(PackHome)
 
 	this.ProjectHomePath = fmt.Sprintf("%s/%s", this.BuilderHome, this.ProjectName)
 	this.ProjectHomePath = strings.ReplaceAll(this.ProjectHomePath, `\`, "/")
 
 	this.JsonHome = fmt.Sprintf("%s/Content/json", this.ProjectHomePath)
 	this.LuaHome = fmt.Sprintf("%s/Content/Script", this.ProjectHomePath)
+	this.TempJsonHome = fmt.Sprintf("%s/json", this.TempFileHome)
+	this.TempLuaHome = fmt.Sprintf("%s/Script", this.TempFileHome)
 
 	this.CookedPath = fmt.Sprintf("%s/Saved/Cooked/%s/%s/Content", this.ProjectHomePath, this.CookPlatformType, this.ProjectName)
 	if this.targetPlatform == iOS {
@@ -281,22 +302,26 @@ func (this *Config) BuildPath() {
 
 	PathExistAndCreate(this.ConfigHome)
 
-	this.TempPakPath = fmt.Sprintf("%s/paks", this.OutputPath)
-	this.ZipSourcePath = fmt.Sprintf("%s/tempFiles", this.OutputPath)
+	this.TempPakPath = fmt.Sprintf("%s/paks", this.TempFileHome)
+	this.ZipSourcePath = fmt.Sprintf("%s/tempFiles", this.TempFileHome)
 
-	this.ResOutputContentPath = fmt.Sprintf("%s/Content", this.OutputPath)
+	this.ResOutputContentPath = fmt.Sprintf("%s/Content", this.TempFileHome)
 
 	zipFilePath := fmt.Sprintf("%s/%s", this.OutputPath, this.Today)
 	PathExistAndCreate(zipFilePath)
 	PathExistAndCreate(this.ZipSourcePath)
 
 	this.PluginCodePath = fmt.Sprintf("%s/Plugins/ENGCore", this.ProjectHomePath)
-	this.TempPluginCodePath = fmt.Sprintf("%s/ENGCore", this.BuilderHome)
+	this.TempPluginCodePath = fmt.Sprintf("%s/ENGCore", this.TempFileHome)
 	this.SVNCore = svnCore
 
 	this.PluginUnLuaPath = fmt.Sprintf("%s/Plugins/UnLua", this.ProjectHomePath)
-	this.TempPluginUnLuaPath = fmt.Sprintf("%s/UnLua", this.BuilderHome)
+	this.TempPluginUnLuaPath = fmt.Sprintf("%s/UnLua", this.TempFileHome)
 	this.SVNUnLua = svnUnLua
+
+	this.SourceGameConfigPath = fmt.Sprintf("%s/Config/DefaultGame.ini", this.ProjectHomePath)
+	this.VersionCppFilePath = fmt.Sprintf("%s/Source/%s/GameVersion.cpp", this.ProjectHomePath, this.ProjectName)
+	this.ProjectEncryptIniPath = fmt.Sprintf("%s/Config/DefaultCrypto.ini", this.ProjectHomePath)
 }
 
 func (this *Config) PrintParams() {
