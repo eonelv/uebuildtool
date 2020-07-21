@@ -22,6 +22,12 @@ type CopyDirTask struct {
 	TargetNamePostfix string
 }
 
+type RenameDirTask struct {
+	BaseMultiThreadTask
+	channel           chan string
+	TargetNamePostfix string
+}
+
 func (this *CopyDirTask) CreateChan() {
 	this.channel = make(chan *MKeyValue)
 	LogDebug("create channel by CopyDirTask")
@@ -55,6 +61,42 @@ func (this *CopyDirTask) ProcessTask(DestFileDir string) {
 		select {
 		case s := <-this.channel:
 			CopyFile(s.Key, DestFileDir+"/"+s.Value+this.TargetNamePostfix)
+		case <-time.After(1 * time.Second):
+			return
+		}
+	}
+}
+
+func (this *RenameDirTask) CreateChan() {
+	this.channel = make(chan string)
+}
+
+func (this *RenameDirTask) CloseChan() {
+	close(this.channel)
+}
+
+func (this *RenameDirTask) WriteToChannel(SrcFileDir string) {
+	filepath.Walk(SrcFileDir, func(path string, info os.FileInfo, err error) error {
+		if err != nil {
+			return err
+		}
+		if err != nil {
+			return err
+		}
+		path = strings.ReplaceAll(path, `\`, "/")
+
+		if !info.IsDir() {
+			this.channel <- path
+		}
+		return err
+	})
+}
+
+func (this *RenameDirTask) ProcessTask(DestFileDir string) {
+	for {
+		select {
+		case s := <-this.channel:
+			os.Rename(s, s+this.TargetNamePostfix)
 		case <-time.After(1 * time.Second):
 			return
 		}
@@ -271,21 +313,21 @@ func ExecCookCmd(cmdStr string, args ...string) error {
 	}
 	fmt.Println(testString)
 
-	err := exe_Inner(cmdStr, args...)
+	err := exe_Inner(cmdStr, false, args...)
 	return err
 }
 
 func ExecSVNCmd(cmdStr string, args ...string) error {
 	args = append(args, "--username=liwei", "--password=liwei!@#")
 
-	err := exe_Inner(cmdStr, args...)
+	err := exe_Inner(cmdStr, true, args...)
 	return err
 }
 
 func ExecPakCmd(cmdStr string, args ...string) error {
 	args = append(args, "-encrypt", "-encryptindex", "-compress")
 
-	err := exe_Inner(cmdStr, args...)
+	err := exe_Inner(cmdStr, false, args...)
 	return err
 }
 
@@ -296,7 +338,7 @@ func ExecApp(cmdStr string, args ...string) error {
 	//err := cmd.Run()
 	//return err
 
-	err := exe_Inner(cmdStr, args...)
+	err := exe_Inner(cmdStr, false, args...)
 	return err
 }
 
@@ -310,11 +352,11 @@ func Exec(cmdStr string, args ...string) error {
 	}
 	fmt.Println(testString)
 
-	err := exe_Inner(cmdStr, args...)
+	err := exe_Inner(cmdStr, true, args...)
 	return err
 }
 
-func exe_Inner(cmdStr string, args ...string) error {
+func exe_Inner(cmdStr string, isLogInfo bool, args ...string) error {
 
 	var testString string = cmdStr
 
@@ -331,21 +373,36 @@ func exe_Inner(cmdStr string, args ...string) error {
 	stdoutPipe, err := cmd.StdoutPipe()
 	if err != nil {
 		LogDebug("get std out error:", err)
-		panic(err)
+		//panic(err)
+		return err
 	}
 	defer stdoutPipe.Close()
 
 	stdErrorPipe, err := cmd.StderrPipe()
 	if err != nil {
 		LogDebug("get std err error:", err)
-		panic(err)
+		//panic(err)
+		return err
 	}
 	defer stdErrorPipe.Close()
 
 	go func() {
 		scanner := bufio.NewScanner(stdoutPipe)
-		for scanner.Scan() { // 命令在执行的过程中, 实时地获取其输出
-			LogInfo(string(scanner.Bytes()))
+		i := 0
+		for scanner.Scan() { //命令在执行的过程中, 实时地获取其输出
+			line := string(scanner.Bytes())
+			if isLogInfo {
+				LogInfo(line)
+				continue
+			}
+			isNeedPrint := strings.Contains(line, "Error") || strings.Contains(line, "Warning")
+			isNeedPrint = isNeedPrint || (i%20 == 0)
+			if isNeedPrint {
+				LogInfo(line)
+				i = 0
+			} else {
+				i++
+			}
 		}
 	}()
 
@@ -358,7 +415,7 @@ func exe_Inner(cmdStr string, args ...string) error {
 
 	if err := cmd.Run(); err != nil {
 		LogDebug("Run ext process error:", err)
-		panic(err)
+		//panic(err)
 	}
 	return err
 }

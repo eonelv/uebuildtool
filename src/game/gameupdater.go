@@ -81,11 +81,8 @@ type GameUpdater struct {
 
 	Reslist *Reslist
 
-	versionCppFilePath    string
-	projectEncryptIniPath string
-
-	sourceGameConfigPath     string
 	cookGameConfigContent    string
+	fullGameConfigContent    string
 	dynamicUpdateJsonContent string
 
 	outAppFileName string
@@ -136,10 +133,16 @@ func (this *GameUpdater) DoUpdate() {
 		LogError("SVN Update Error!!!", time.Now())
 		return
 	}
+	//2. 复制插件到项目目录
 	multiThreadTask = &CopyDirTask{}
 	ExecTask(multiThreadTask, this.config.TempPluginCodePath, this.config.PluginCodePath)
 	ExecTask(multiThreadTask, this.config.TempPluginUnLuaPath, this.config.PluginUnLuaPath)
 
+	//3. 备份SVN中的Json & Lua
+	ExecTask(multiThreadTask, this.config.JsonHome, this.config.TempJsonHome)
+	ExecTask(multiThreadTask, this.config.LuaHome, this.config.TempLuaHome)
+
+	//读取版本号
 	SVNDatabase := &SVNDatabase{}
 	SVNDatabase.ProjectPath = this.config.ProjectHomePath
 	this.version = SVNDatabase.ReadSVNVersion()
@@ -148,12 +151,14 @@ func (this *GameUpdater) DoUpdate() {
 		return
 	}
 	//************先出App****************
+	//写入动态更新列表
 	this.readProjectGameSetting()
 	WriteFile([]byte(this.dynamicUpdateJsonContent), this.config.ProjectHomePath+"/Content/json/dynamiclist.json")
 
-	//6. 写入代码版本号到C++（这里还需要读取Sqlite的功能，最后再加吧）
+	//写入代码版本号到C++（这里还需要读取Sqlite的功能，最后再加吧）
 	this.writeVersionCPP()
 
+	//加密Json & Lua
 	if this.config.IsEncrypt() {
 		LogInfo("开始加密文件")
 		multiThreadTask = &EncryptJsonTask{}
@@ -169,7 +174,7 @@ func (this *GameUpdater) DoUpdate() {
 		this.buildFirst()
 	}
 	if this.config.IsApp {
-		//7. 生成App
+		//生成App
 		okApp := this.buildApp()
 		if !okApp {
 			return
@@ -177,10 +182,10 @@ func (this *GameUpdater) DoUpdate() {
 	}
 
 	//***************再出资源************
-	//2. Cook Data
+	//Cook Data
 	this.cookDatas()
 
-	//3. 对比输出需要打包的文件（读取旧的文件MD5, 计算新的MD5）
+	//对比输出需要打包的文件（读取旧的文件MD5, 计算新的MD5）
 	oldJson, err := utils.ReadJson(this.config.ConfigHome + "/version.json")
 	if err != nil {
 		LogError("Read Old Json Failed!")
@@ -196,18 +201,12 @@ func (this *GameUpdater) DoUpdate() {
 	this.buildPak()
 
 	//文件拆分
-	LogInfo("开始拆分文件")
+	LogInfo("开始拆分Pak文件-目标目录是ZipSourcePath")
 	multiThreadTask = &FileSpliterTask{}
 	ExecTask(multiThreadTask, this.config.TempPakPath, this.config.ZipSourcePath)
 
-	LogInfo("开始复制json&lua目录")
-	copyJsonTask := &CopyDirTask{}
-	multiThreadTask = copyJsonTask
-	//如果是发布版，修改文件名(这里只需要修改文件名就可以了，版本号在reslist.json里面有)
-	//项目代码在更新的时候，URL文件名加载对应的版本号即可
-	if this.config.IsPatch {
-		copyJsonTask.TargetNamePostfix = fmt.Sprintf("_%d", this.version)
-	}
+	LogInfo("开始复制json&lua目录-目标目录是ZipSourcePath")
+	multiThreadTask = &CopyDirTask{}
 	ExecTask(multiThreadTask, this.config.ResOutputContentPath+"/Script", this.config.ZipSourcePath+"/Script")
 	ExecTask(multiThreadTask, this.config.ResOutputContentPath+"/json", this.config.ZipSourcePath+"/json")
 
@@ -227,14 +226,22 @@ func (this *GameUpdater) DoUpdate() {
 		return
 	}
 
-	//5. 写入Version.json文件
+	if this.config.IsPatch {
+		renameJsonTask := &RenameDirTask{}
+		//如果是发布版，修改文件名(这里只需要修改文件名就可以了，版本号在reslist.json里面有)
+		//项目代码在更新的时候，URL文件名加载对应的版本号即可
+		renameJsonTask.TargetNamePostfix = fmt.Sprintf("_%d", this.version)
+		ExecTask(renameJsonTask, this.config.ZipSourcePath+"/Script", this.config.ZipSourcePath+"/Script")
+		ExecTask(renameJsonTask, this.config.ZipSourcePath+"/json", this.config.ZipSourcePath+"/json")
+	}
+	//写入Version.json文件
 	okVersion := this.writeVersion(oldJson)
 	if !okVersion {
 		this.Reslist.Reverse()
 		this.clearWhenError()
 	}
 
-	//打包pak到输出目录
+	//生成压缩包
 	okZip := this.zipSpPackage()
 	if !okZip {
 		this.Reslist.Reverse()
@@ -314,9 +321,8 @@ func (this *GameUpdater) buildFirst() {
 
 func (this *GameUpdater) writeCrypto() {
 	cryptoJsonPath := fmt.Sprintf("%s/Config/DefaultCrypto.json", this.config.ProjectHomePath)
-	this.projectEncryptIniPath = fmt.Sprintf("%s/Config/DefaultCrypto.ini", this.config.ProjectHomePath)
 
-	file, err := os.OpenFile(this.projectEncryptIniPath, os.O_RDONLY, os.ModeAppend)
+	file, err := os.OpenFile(this.config.ProjectEncryptIniPath, os.O_RDONLY, os.ModeAppend)
 
 	if err != nil {
 		this.isEncryptPak = false
@@ -344,7 +350,7 @@ func (this *GameUpdater) writeCrypto() {
 			}
 		}
 	}
-	WriteFile([]byte(encryptLine), this.projectEncryptIniPath)
+	WriteFile([]byte(encryptLine), this.config.ProjectEncryptIniPath)
 
 	this.isEncryptPak = true
 	tempMsg := fmt.Sprintf("{\n\"EncryptionKey\":{\"Key\":\"%s\"}\n}", pakEncryptKey)
@@ -585,9 +591,8 @@ func (this *GameUpdater) readFiles(pathname string) {
 }
 
 func (this *GameUpdater) readProjectGameSetting() {
-	this.sourceGameConfigPath = fmt.Sprintf("%s/Config/DefaultGame.ini", this.config.ProjectHomePath)
 
-	file, err := os.OpenFile(this.sourceGameConfigPath, os.O_RDONLY, os.ModeAppend)
+	file, err := os.OpenFile(this.config.SourceGameConfigPath, os.O_RDONLY, os.ModeAppend)
 
 	if err != nil {
 		LogError("Read DefaultGame.ini failed", err)
@@ -599,10 +604,14 @@ func (this *GameUpdater) readProjectGameSetting() {
 	scanner.Split(bufio.ScanLines)
 
 	this.cookGameConfigContent = ""
+	this.fullGameConfigContent = ""
 	this.dynamicUpdateJsonContent = "{"
 	for scanner.Scan() {
 		line := strings.TrimSpace(scanner.Text())
-		LogInfo("Dynamic Update Config Source:", line)
+
+		//LogInfo("Dynamic Update Config Source:", line)
+		this.fullGameConfigContent += fmt.Sprintf("%s\n", line)
+
 		// expression match
 		index := strings.Index(line, "=")
 
@@ -643,7 +652,7 @@ func (this *GameUpdater) cookDatas() {
 			panic(err)
 		}
 	}()
-	WriteFile([]byte(this.cookGameConfigContent), this.sourceGameConfigPath)
+	WriteFile([]byte(this.cookGameConfigContent), this.config.SourceGameConfigPath)
 	LogInfo("**********Begin Cook Content**********")
 	ProjectFile := fmt.Sprintf("%s/%s.uproject", this.config.ProjectHomePath, this.config.ProjectName)
 	LogFile := fmt.Sprintf("%s/log/Cook-2020.txt", this.config.ProjectHomePath)
@@ -664,8 +673,7 @@ func (this *GameUpdater) cookDatas() {
 
 func (this *GameUpdater) writeVersionCPP() {
 	code := fmt.Sprintf(codetemp, time.Now(), this.version, pakEncryptKey, this.config.IsEncrypt())
-	this.versionCppFilePath = fmt.Sprintf("%s/Source/%s/GameVersion.cpp", this.config.ProjectHomePath, this.config.ProjectName)
-	WriteFile([]byte(code), this.versionCppFilePath)
+	WriteFile([]byte(code), this.config.VersionCppFilePath)
 }
 
 func (this *GameUpdater) buildApp() bool {
@@ -846,9 +854,13 @@ func (this *GameUpdater) svnCheckout() {
 		} else {
 			//这里原来是在clear清理
 			//现在外网包不更新代码了，放到这里清理
-			os.Remove(this.projectEncryptIniPath)
-			os.Remove(this.versionCppFilePath)
-			os.Remove(this.sourceGameConfigPath)
+			os.Remove(this.config.ProjectEncryptIniPath)
+			os.Remove(this.config.VersionCppFilePath)
+			os.Remove(this.config.SourceGameConfigPath)
+
+			//Lua & Json可能是加密过的，所以要删除. 下次编译重新更新
+			os.RemoveAll(this.config.JsonHome)
+			os.RemoveAll(this.config.LuaHome)
 		}
 
 		ExecSVNCmd("svn", "cleanup", this.config.ProjectName)
@@ -890,9 +902,9 @@ func (this *GameUpdater) writeVersion(oldJson *simplejson.Json) bool {
 
 func (this *GameUpdater) clear() {
 	//删除缓存文件
-	os.RemoveAll(this.config.ResOutputContentPath)
-	os.RemoveAll(this.config.TempPakPath)
-	os.RemoveAll(this.config.ZipSourcePath)
+	//os.RemoveAll(this.config.ResOutputContentPath)
+	//os.RemoveAll(this.config.TempPakPath)
+	//os.RemoveAll(this.config.ZipSourcePath)
 
 	//Lua & Json可能是加密过的，所以要删除. 下次编译重新更新
 	os.RemoveAll(this.config.JsonHome)
@@ -900,10 +912,19 @@ func (this *GameUpdater) clear() {
 
 	//插件使用完之后也要删除. 下次编译重新更新
 	os.RemoveAll(this.config.PluginCodePath)
-	os.RemoveAll(this.config.TempPluginCodePath)
 
 	os.RemoveAll(this.config.PluginUnLuaPath)
-	os.RemoveAll(this.config.TempPluginUnLuaPath)
+
+	//还原DefaultGame.ini
+	//    如果下次是内网包，更新SVN时会删除现有的
+	//    如果下次是外网包，使用还原的这份
+	WriteFile([]byte(this.fullGameConfigContent), this.config.SourceGameConfigPath)
+
+	multiThreadTask := &CopyDirTask{}
+	ExecTask(multiThreadTask, this.config.TempJsonHome, this.config.JsonHome)
+	ExecTask(multiThreadTask, this.config.TempLuaHome, this.config.LuaHome)
+
+	os.RemoveAll(this.config.TempFileHome)
 }
 
 func (this *GameUpdater) sendReport() {
