@@ -12,8 +12,7 @@ const (
 	CMD_BUILD           uint16 = 50010
 	CMD_BUILD_INFO      uint16 = 50011
 	CMD_PROJECT         uint16 = 50012
-
-	CMD_ACTOR uint16 = 10008
+	CMD_NET_REPORT      uint16 = 50013
 )
 
 const (
@@ -22,6 +21,10 @@ const (
 	CMD_SYSTEM_USER_LOGIN   uint16 = 10005
 	CMD_SYSTEM_BROADCAST    uint16 = 10006
 	CMD_SYSTEM_USER_MSG     uint16 = 10007
+	CMD_SYSTEM_SERVER_BUILD uint16 = 10008
+	CMD_SYSTEM_NET_REPORT   uint16 = 10009
+
+	CMD_ACTOR uint16 = 10008
 )
 
 const (

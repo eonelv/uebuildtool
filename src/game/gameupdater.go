@@ -6,6 +6,7 @@ import (
 	. "cfg"
 	. "core"
 	"crypto/md5"
+	. "def"
 	. "file"
 	"fmt"
 	"io/ioutil"
@@ -94,6 +95,8 @@ type GameUpdater struct {
 	//0x02 App失败
 	//0x04 zip失败
 	result int
+
+	ProjectID ObjectID
 }
 
 func (this *GameUpdater) DoUpdate() {
@@ -128,6 +131,7 @@ func (this *GameUpdater) DoUpdate() {
 
 	var multiThreadTask MultiThreadTask
 	//1. 更新SVN
+	this.netReport("更新SVN")
 	isSvnOK := this.checkOut()
 	if !isSvnOK {
 		LogError("SVN Update Error!!!", time.Now())
@@ -138,6 +142,7 @@ func (this *GameUpdater) DoUpdate() {
 	ExecTask(multiThreadTask, this.config.TempPluginCodePath, this.config.PluginCodePath)
 	ExecTask(multiThreadTask, this.config.TempPluginUnLuaPath, this.config.PluginUnLuaPath)
 
+	this.netReport("备份Json & Lua")
 	//3. 备份SVN中的Json & Lua
 	ExecTask(multiThreadTask, this.config.JsonHome, this.config.TempJsonHome)
 	ExecTask(multiThreadTask, this.config.LuaHome, this.config.TempLuaHome)
@@ -152,6 +157,7 @@ func (this *GameUpdater) DoUpdate() {
 	}
 	//************先出App****************
 	//写入动态更新列表
+	this.netReport("写入动态更新列表")
 	this.readProjectGameSetting()
 	WriteFile([]byte(this.dynamicUpdateJsonContent), this.config.ProjectHomePath+"/Content/json/dynamiclist.json")
 
@@ -161,6 +167,7 @@ func (this *GameUpdater) DoUpdate() {
 	//加密Json & Lua
 	if this.config.IsEncrypt() {
 		LogInfo("开始加密文件")
+		this.netReport("加密文件")
 		multiThreadTask = &EncryptJsonTask{}
 		ExecTask(multiThreadTask, this.config.JsonHome, "")
 		ExecTask(multiThreadTask, this.config.LuaHome, "")
@@ -171,10 +178,12 @@ func (this *GameUpdater) DoUpdate() {
 	//2. ENGCore.UnLua插件是时时编译的，所以需要重编C++代码
 	if !this.config.IsDebugTool {
 		LogInfo("Begin Build First!")
+		this.netReport("预编译项目")
 		this.buildFirst()
 	}
 	if this.config.IsApp {
 		//生成App
+		this.netReport("开始编译App")
 		okApp := this.buildApp()
 		if !okApp {
 			return
@@ -183,6 +192,7 @@ func (this *GameUpdater) DoUpdate() {
 
 	//***************再出资源************
 	//Cook Data
+	this.netReport("Cook所有资源")
 	this.cookDatas()
 
 	//对比输出需要打包的文件（读取旧的文件MD5, 计算新的MD5）
@@ -190,22 +200,28 @@ func (this *GameUpdater) DoUpdate() {
 	if err != nil {
 		LogError("Read Old Json Failed!")
 	}
+	this.netReport("计算Cook资源的MD5")
 	this.calcNewMD5()
 	Result := this.merge(oldJson)
+
+	this.netReport("复制文件到Pak打包目录")
 	this.copyFiles(Result)
 
 	//4. 根据对比结果生成pak
 	this.writeCrypto()
 	this.processReslist()
 
+	this.netReport("打包Pak")
 	this.buildPak()
 
 	//文件拆分
 	LogInfo("开始拆分Pak文件-目标目录是ZipSourcePath")
+	this.netReport("拆分Pak文件")
 	multiThreadTask = &FileSpliterTask{}
 	ExecTask(multiThreadTask, this.config.TempPakPath, this.config.ZipSourcePath)
 
 	LogInfo("开始复制json&lua目录-目标目录是ZipSourcePath")
+	this.netReport("复制Json & Lua到输出目录")
 	multiThreadTask = &CopyDirTask{}
 	ExecTask(multiThreadTask, this.config.ResOutputContentPath+"/Script", this.config.ZipSourcePath+"/Script")
 	ExecTask(multiThreadTask, this.config.ResOutputContentPath+"/json", this.config.ZipSourcePath+"/json")
@@ -213,6 +229,7 @@ func (this *GameUpdater) DoUpdate() {
 	//遍历pak目录，计算pak的MD5
 	//如果是外网版本，增加一行记录
 	//如果是内网版本，替换掉现有记录
+	this.netReport("计算所有待输出文件的MD5")
 	pakmd5 := &PakMD5{}
 	//计算原始文件MD5
 	pakmd5.CalcMD5(this.Reslist, this.numCPU, this.config.TempPakPath, this.config.IsPatch, this.version)
@@ -241,6 +258,7 @@ func (this *GameUpdater) DoUpdate() {
 		this.clearWhenError()
 	}
 
+	this.netReport("正在生成压缩包")
 	//生成压缩包
 	okZip := this.zipSpPackage()
 	if !okZip {
@@ -991,6 +1009,16 @@ func (this *GameUpdater) clearWhenError() {
 	LogDebug("clearWhenError")
 	os.Remove(this.outAppFileName)
 	os.Remove(this.outZipFileName)
+}
+
+func (this *GameUpdater) netReport(msg string) {
+	cmd := &Command{CMD_SYSTEM_NET_REPORT, msg, nil, this.ProjectID}
+
+	channel := GetChanByID(SYSTEM_CHAN_ID)
+	err := SendCommand(channel, cmd, 10)
+	if err != nil {
+		LogError(err)
+	}
 }
 
 func MD5(pData []byte) string {

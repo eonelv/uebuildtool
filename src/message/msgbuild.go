@@ -77,6 +77,7 @@ func (this *MsgBuild) build(Sender *TCPSender) {
 
 	Sender.Send(msgBuildInfo)
 
+	gameUpdater.ProjectID = project.ID
 	gameUpdater.DoUpdate()
 
 	msgBuildInfo.ServerState = 1

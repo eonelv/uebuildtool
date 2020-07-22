@@ -113,6 +113,13 @@ func Connect() {
 			LogInfo("system command :", msg.Cmd)
 			if msg.Cmd == CMD_SYSTEM_MAIN_CLOSE {
 				return
+			} else if msg.Cmd == CMD_SYSTEM_NET_REPORT {
+				netMsg := &MsgNetReport{}
+				netMsg.ID = msg.OtherInfo.(ObjectID)
+				reportMsg := msg.Message.(string)
+				CopyArray(reflect.ValueOf(&netMsg.Message), []byte(reportMsg))
+				client.Sender.Send(netMsg)
+				LogDebug("发送上报信息到服务器", reportMsg)
 			}
 		}
 	}
