@@ -38,7 +38,14 @@ const (
 	BUILD uint16 = 2
 )
 
+const (
+	ServerStateNone     int32 = 0
+	ServerStateIdle     int32 = 1
+	ServerStateBuilding int32 = 2
+)
+
 type MsgBuild struct {
+	UserID ObjectID
 	Action uint16
 	//"isPath"是tag, 在反射里会用到. 如果需要处理反射，可以添加tag
 	IsPatch bool "isPath"
@@ -69,6 +76,7 @@ type Project struct {
 
 type MsgBuildInfo struct {
 	ID          ObjectID
+	UserID      ObjectID
 	Name        [255]byte
 	ProjectName [255]byte
 	Host        [255]byte
