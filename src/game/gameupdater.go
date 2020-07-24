@@ -38,7 +38,8 @@ GameVersion::~GameVersion()
 
 int GameVersion::Version = %d;
 FString GameVersion::EncryptKey = TEXT("%s");
-bool GameVersion::IsEncrypt = %v;`
+bool GameVersion::IsEncrypt = %v;
+bool GameVersion::IsPatch = %v;`
 
 type SMD5 struct {
 	relName          string
@@ -247,7 +248,7 @@ func (this *GameUpdater) DoUpdate() {
 		renameJsonTask := &RenameDirTask{}
 		//如果是发布版，修改文件名(这里只需要修改文件名就可以了，版本号在reslist.json里面有)
 		//项目代码在更新的时候，URL文件名加载对应的版本号即可
-		renameJsonTask.TargetNamePostfix = fmt.Sprintf("_%d", this.version)
+		renameJsonTask.TargetNamePostfix = fmt.Sprintf("_v_%d", this.version)
 		ExecTask(renameJsonTask, this.config.ZipSourcePath+"/Script", this.config.ZipSourcePath+"/Script")
 		ExecTask(renameJsonTask, this.config.ZipSourcePath+"/json", this.config.ZipSourcePath+"/json")
 	}
@@ -690,7 +691,7 @@ func (this *GameUpdater) cookDatas() {
 }
 
 func (this *GameUpdater) writeVersionCPP() {
-	code := fmt.Sprintf(codetemp, time.Now(), this.version, pakEncryptKey, this.config.IsEncrypt())
+	code := fmt.Sprintf(codetemp, time.Now(), this.version, pakEncryptKey, this.config.IsEncrypt(), this.config.IsPatch)
 	WriteFile([]byte(code), this.config.VersionCppFilePath)
 }
 
