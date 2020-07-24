@@ -132,7 +132,6 @@ func (this *GameUpdater) DoUpdate() {
 
 	var multiThreadTask MultiThreadTask
 	//1. 更新SVN
-	this.netReport("更新SVN")
 	isSvnOK := this.checkOut()
 	if !isSvnOK {
 		LogError("SVN Update Error!!!", time.Now())
@@ -160,7 +159,9 @@ func (this *GameUpdater) DoUpdate() {
 	//写入动态更新列表
 	this.netReport("写入动态更新列表")
 	this.readProjectGameSetting()
-	WriteFile([]byte(this.dynamicUpdateJsonContent), this.config.ProjectHomePath+"/Content/json/dynamiclist.json")
+
+	dynamiclistFileNme := this.config.ProjectHomePath + "/Content/json/dynamiclist.json"
+	WriteFile([]byte(this.dynamicUpdateJsonContent), dynamiclistFileNme)
 
 	//写入代码版本号到C++（这里还需要读取Sqlite的功能，最后再加吧）
 	this.writeVersionCPP()
@@ -177,23 +178,24 @@ func (this *GameUpdater) DoUpdate() {
 	//1. 在C++代码被修改之后，特别是蓝图父类，会丢失蓝图，必须重新check一次代码，所以更新完马上编译
 	//这种情况必须要重编C++代码
 	//2. ENGCore.UnLua插件是时时编译的，所以需要重编C++代码
-	if !this.config.IsDebugTool {
-		LogInfo("Begin Build First!")
-		this.netReport("预编译项目")
-		this.buildFirst()
+	this.buildFirst()
+	okApp := this.buildApp()
+	if !okApp {
+		return
 	}
-	if this.config.IsApp {
-		//生成App
-		this.netReport("开始编译App")
-		okApp := this.buildApp()
-		if !okApp {
-			return
-		}
+
+	//删除动态更新列表
+	os.Remove(dynamiclistFileNme)
+	//解密Json & Lua
+	if this.config.IsEncrypt() {
+		LogInfo("开始解密文件")
+		multiThreadTask = &EncryptJsonTask{}
+		ExecTask(multiThreadTask, this.config.JsonHome, "")
+		ExecTask(multiThreadTask, this.config.LuaHome, "")
 	}
 
 	//***************再出资源************
 	//Cook Data
-	this.netReport("Cook所有资源")
 	this.cookDatas()
 
 	//对比输出需要打包的文件（读取旧的文件MD5, 计算新的MD5）
@@ -201,18 +203,15 @@ func (this *GameUpdater) DoUpdate() {
 	if err != nil {
 		LogError("Read Old Json Failed!")
 	}
-	this.netReport("计算Cook资源的MD5")
+
 	this.calcNewMD5()
 	Result := this.merge(oldJson)
-
-	this.netReport("复制文件到Pak打包目录")
 	this.copyFiles(Result)
 
 	//4. 根据对比结果生成pak
 	this.writeCrypto()
 	this.processReslist()
 
-	this.netReport("打包Pak")
 	this.buildPak()
 
 	//文件拆分
@@ -259,7 +258,6 @@ func (this *GameUpdater) DoUpdate() {
 		this.clearWhenError()
 	}
 
-	this.netReport("正在生成压缩包")
 	//生成压缩包
 	okZip := this.zipSpPackage()
 	if !okZip {
@@ -270,6 +268,7 @@ func (this *GameUpdater) DoUpdate() {
 }
 
 func (this *GameUpdater) zipSpPackage() bool {
+	this.netReport("正在生成压缩包")
 	zipFilePath := fmt.Sprintf("%s/%s", this.config.OutputPath, this.today)
 	prefixPatch := ""
 	if this.config.IsPatch {
@@ -332,6 +331,11 @@ func (this *GameUpdater) GetConfig() *Config {
 }
 
 func (this *GameUpdater) buildFirst() {
+	if this.config.IsDebugTool {
+		return
+	}
+	LogInfo("Begin Build First!")
+	this.netReport("预编译项目")
 	LogInfo("**********Begin checkout svn code**********")
 	ProjectFileParam := fmt.Sprintf(`-Project=%s/%s.uproject`, this.config.ProjectHomePath, this.config.ProjectName)
 	Exec(this.config.UnrealBuildTool, "Development", "Win64", ProjectFileParam, "-TargetType=Editor", "-Progress", "-NoHotReloadFromIDE")
@@ -397,6 +401,7 @@ func (this *GameUpdater) findPakContent() {
 }
 
 func (this *GameUpdater) buildPak() {
+	this.netReport("打包Pak")
 	LogInfo("**********Begin buildPak**********")
 	if ok, _ := PathExists(this.config.TempPakPath); !ok {
 		os.MkdirAll(this.config.TempPakPath, os.ModePerm)
@@ -450,6 +455,7 @@ func (this *GameUpdater) buildSinglePak(pakSrcPath *SKeyValue) {
 }
 
 func (this *GameUpdater) copyFiles(Result map[string]*SMD5) {
+	this.netReport("复制文件到Pak打包目录")
 	LogInfo("**********Begin copyFiles**********")
 	this.chanWattingCopyFileName = make(chan *SMD5, this.numCPU)
 	defer close(this.chanWattingCopyFileName)
@@ -475,10 +481,12 @@ func (this *GameUpdater) go_CopyFile() {
 	for {
 		select {
 		case s := <-this.chanWattingCopyFileName:
+			fileName := s.sourceParentPath + "/" + s.relName
+			targetFileName := this.config.ResOutputContentPath + "/" + s.relName
+			CopyFile(fileName, targetFileName)
 			if this.config.IsEncrypt() && (strings.HasSuffix(s.relName, ".json") || strings.HasSuffix(s.relName, ".lua")) {
-				CopyFileAndCompress(s.sourceParentPath+"/"+s.relName, this.config.ResOutputContentPath+"/"+s.relName)
-			} else {
-				CopyFile(s.sourceParentPath+"/"+s.relName, this.config.ResOutputContentPath+"/"+s.relName)
+				EncryptFile(targetFileName)
+				CompressFile(targetFileName)
 			}
 		case <-time.After(1 * time.Second):
 			return
@@ -521,6 +529,7 @@ func (this *GameUpdater) merge(oldJson *simplejson.Json) map[string]*SMD5 {
 }
 
 func (this *GameUpdater) calcNewMD5() {
+	this.netReport("计算Cook资源的MD5")
 	LogInfo("**********Begin calculate source file md5 **********")
 	this.newMD5Data = make(map[string]*SMD5)
 	this.chanFileName = make(chan string, this.numCPU)
@@ -671,6 +680,9 @@ func (this *GameUpdater) cookDatas() {
 			panic(err)
 		}
 	}()
+
+	this.netReport("Cook所有资源")
+
 	WriteFile([]byte(this.cookGameConfigContent), this.config.SourceGameConfigPath)
 	LogInfo("**********Begin Cook Content**********")
 	ProjectFile := fmt.Sprintf("%s/%s.uproject", this.config.ProjectHomePath, this.config.ProjectName)
@@ -696,12 +708,18 @@ func (this *GameUpdater) writeVersionCPP() {
 }
 
 func (this *GameUpdater) buildApp() bool {
+
 	defer func() {
 		if err := recover(); err != nil {
 			LogError("Build App Error:", err) //这里的err其实就是panic传入的内容
 			this.result |= 0x02
 		}
 	}()
+
+	if !this.config.IsApp {
+		return true
+	}
+	this.netReport("开始编译App")
 
 	LogInfo("**********Begin buildApp**********")
 	var tempBuildFile string = fmt.Sprintf("%s/TempBuild.cmd", this.config.BuilderHome)
@@ -831,6 +849,7 @@ func (this *GameUpdater) buildApp() bool {
 }
 
 func (this *GameUpdater) checkOut() bool {
+	this.netReport("更新SVN")
 	LogInfo("**********Begin checkout svn code**********")
 
 	this.sysChan = make(chan string)

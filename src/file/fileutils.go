@@ -272,6 +272,30 @@ func EncryptFile(SrcFile string) error {
 	return err
 }
 
+func CompressFile(SrcFile string) error {
+	datas, err := ioutil.ReadFile(SrcFile)
+	if err != nil {
+		return err
+	}
+
+	var in bytes.Buffer
+
+	writer := zlib.NewWriter(&in)
+	writer.Write(datas)
+	writer.Close()
+
+	//创建目标文件
+	fileWrite, err := os.OpenFile(SrcFile, os.O_WRONLY|os.O_CREATE, os.ModePerm)
+
+	if err != nil {
+		fmt.Println("Create err:", err)
+		return err
+	}
+	defer fileWrite.Close()
+	fileWrite.Write(in.Bytes())
+	return err
+}
+
 func CopyFileAndCompress(SrcFile string, DestFile string) error {
 	DestFile = strings.ReplaceAll(DestFile, "\\", "/")
 	index := strings.LastIndex(DestFile, "/")
