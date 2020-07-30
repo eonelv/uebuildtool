@@ -140,6 +140,7 @@ func ProcessRecv(handler *TCPUserConn) {
 		_, err := io.ReadFull(conn, headerBytes)
 		if err != nil {
 			LogError("Read Data Error, maybe the socket is closed!  ")
+			os.Exit(3)
 			break
 		}
 
@@ -151,6 +152,7 @@ func ProcessRecv(handler *TCPUserConn) {
 		_, err = io.ReadFull(conn, bodyBytes)
 		if err != nil {
 			LogError("read data error ", err.Error())
+			os.Exit(3)
 			break
 		}
 
