@@ -13,6 +13,7 @@ const (
 	CMD_BUILD_INFO      uint16 = 50011
 	CMD_PROJECT         uint16 = 50012
 	CMD_NET_REPORT      uint16 = 50013
+	CMD_FILE            uint16 = 50014
 )
 
 const (
