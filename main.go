@@ -3,7 +3,11 @@ package main
 
 import (
 	. "core"
+	"fmt"
 	"mynet"
+	"net/http"
+	"os"
+	"path/filepath"
 	"runtime"
 	"strings"
 	"utils"
@@ -22,7 +26,22 @@ func main() {
 	runtime.GOMAXPROCS(runtime.NumCPU())
 	//var gameUpdater *game.GameUpdater = &game.GameUpdater{}
 	//gameUpdater.DoUpdate()
+
+	go startFileServer()
 	start()
+}
+
+func startFileServer() {
+	p, _ := filepath.Abs(filepath.Dir(os.Args[0]))
+	http.Handle("/log/", http.FileServer(http.Dir(p)))
+
+	http.Handle("/APack_Android/", http.FileServer(http.Dir(p)))
+	http.Handle("/APack_iOS/", http.FileServer(http.Dir(p)))
+
+	err := http.ListenAndServe(":5009", nil)
+	if err != nil {
+		fmt.Println(err)
+	}
 }
 
 func start() {
