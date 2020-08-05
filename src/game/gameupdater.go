@@ -274,7 +274,8 @@ func (this *GameUpdater) zipSpPackage() bool {
 	if this.config.IsPatch {
 		prefixPatch = "sp_"
 	}
-	this.outZipFileName = fmt.Sprintf("%s/%sres_%s_v%d.zip", zipFilePath, prefixPatch, this.today, this.version)
+
+	this.outZipFileName = fmt.Sprintf("%s/%sres_%s_%s_v%d.zip", zipFilePath, prefixPatch, this.config.GetTargetPlatform(), this.today, this.version)
 
 	if this.checkAvalibleZipFile(this.config.ZipSourcePath) != 0 {
 		err := Zip(this.config.ZipSourcePath, this.outZipFileName)
