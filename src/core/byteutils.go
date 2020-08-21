@@ -115,6 +115,12 @@ func Byte2Struct(dataType reflect.Value, bytes1 []byte) (bool, int) {
 			index += 8
 		case reflect.Array:
 			cap := f.Cap()
+			//如果是最后一个字段，可能实际发送的数据没有预计的长
+			//使用有效数据
+			if index+cap > len(bytes1) {
+				cap = len(bytes1) - index
+			}
+
 			datas := bytes1[index : index+cap]
 			CopyArray(f.Addr(), datas)
 			index += cap
