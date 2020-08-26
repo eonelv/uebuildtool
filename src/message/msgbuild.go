@@ -78,6 +78,10 @@ func (this *MsgBuild) build(Sender *TCPSender) {
 	Sender.Send(msgBuildInfo)
 
 	gameUpdater.ProjectID = project.ID
+	go this.go_build(Sender, msgBuildInfo, gameUpdater)
+}
+
+func (this *MsgBuild) go_build(Sender *TCPSender, msgBuildInfo *MsgBuildInfo, gameUpdater *game.GameUpdater) {
 	gameUpdater.DoUpdate()
 
 	msgBuildInfo.ServerState = ServerStateIdle
