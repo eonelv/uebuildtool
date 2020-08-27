@@ -42,7 +42,7 @@ func startFileServer() {
 	http.Handle("/APack_Android/", http.FileServer(http.Dir(p)))
 	http.Handle("/APack_iOS/", http.FileServer(http.Dir(p)))
 
-	err := http.ListenAndServe(":5009", nil)
+	err := http.ListenAndServe(":80", nil)
 	if err != nil {
 		fmt.Println(err)
 	}
@@ -52,9 +52,9 @@ func HomeHandler(w http.ResponseWriter, r *http.Request) {
 	webContext :=
 		`<h1 align="center">%s编译输出</h1>
 		<ul>
-		<li><a href="http://%s:5009/APack_Android">Android包</a></li>
-		<li><a href="http://%s:5009/APack_iOS">iOS包</a></li>
-		<li><a href="http://%s:5009/log">日志</a></li>
+		<li><a href="http://%s:/APack_Android">Android包</a></li>
+		<li><a href="http://%s:/APack_iOS">iOS包</a></li>
+		<li><a href="http://%s:/log">日志</a></li>
 		</ul>`
 
 	w.Write([]byte(fmt.Sprintf(webContext, localIP, localIP, localIP, localIP)))
