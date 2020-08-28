@@ -975,10 +975,10 @@ func (this *GameUpdater) sendReport() {
 		this.config.IsPatch, this.config.IsRelease)
 	if this.outAppFileName != "" {
 		ip, _ := utils.GetLocalIP()
-		msgtemp += fmt.Sprintf(" [App]:http://%s:5009/%s", ip, this.outAppFileName[len(this.config.BuilderHome)+1:])
+		msgtemp += fmt.Sprintf(" [App]:http://%s/%s", ip, this.outAppFileName[len(this.config.BuilderHome)+1:])
 	}
 	if this.outZipFileName != "" {
-		msgtemp += fmt.Sprintf(" [Zip]:http://%s:5009/%s", ip, this.outZipFileName[len(this.config.BuilderHome)+1:])
+		msgtemp += fmt.Sprintf(" [Zip]:http://%s/%s", ip, this.outZipFileName[len(this.config.BuilderHome)+1:])
 	} else {
 		msgtemp += fmt.Sprintf(" [Zip]:%s", "没有")
 	}
