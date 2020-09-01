@@ -827,6 +827,10 @@ func (this *GameUpdater) buildApp() bool {
 		}
 		name := fi.Name()
 		if strings.Contains(name, ".apk") || strings.Contains(name, ".ipa") {
+			name = strings.ReplaceAll(name, "-IOS", "")
+			name = strings.ReplaceAll(name, "-Android", "")
+			name = strings.ReplaceAll(name, "-Shipping", "")
+			name = strings.ReplaceAll(name, "DebugGame", "Debug")
 			index := strings.LastIndex(name, ".")
 
 			prefixPatch := ""
