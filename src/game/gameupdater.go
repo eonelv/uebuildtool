@@ -41,6 +41,12 @@ FString GameVersion::EncryptKey = TEXT("%s");
 bool GameVersion::IsEncrypt = %v;
 bool GameVersion::IsPatch = %v;`
 
+const (
+	RESULT_ERROR_CODE_COOK int32 = 0x01
+	RESULT_ERROR_CODE_APP  int32 = 0x02
+	RESULT_ERROR_CODE_ZIP  int32 = 0x04
+)
+
 type SMD5 struct {
 	relName          string
 	sourceParentPath string
@@ -95,7 +101,7 @@ type GameUpdater struct {
 	//0x01 cook失败
 	//0x02 App失败
 	//0x04 zip失败
-	result int
+	result int32
 
 	ProjectID ObjectID
 }
@@ -677,7 +683,7 @@ func (this *GameUpdater) readProjectGameSetting() {
 func (this *GameUpdater) cookDatas() {
 	defer func() {
 		if err := recover(); err != nil {
-			this.result |= 0x01
+			this.result |= RESULT_ERROR_CODE_COOK
 			panic(err)
 		}
 	}()
@@ -713,7 +719,7 @@ func (this *GameUpdater) buildApp() bool {
 	defer func() {
 		if err := recover(); err != nil {
 			LogError("Build App Error:", err) //这里的err其实就是panic传入的内容
-			this.result |= 0x02
+			this.result |= RESULT_ERROR_CODE_APP
 		}
 	}()
 
@@ -816,7 +822,7 @@ func (this *GameUpdater) buildApp() bool {
 	rd, err := ioutil.ReadDir(achieveDir)
 	if err != nil {
 		os.Remove(tempBuildFile)
-		this.result |= 0x02
+		this.result |= RESULT_ERROR_CODE_APP
 		LogInfo("**********buildApp Failed!**********")
 		return false
 	}
@@ -846,7 +852,7 @@ func (this *GameUpdater) buildApp() bool {
 		LogInfo("**********buildApp Success!**********")
 		return true
 	} else {
-		this.result |= 0x02
+		this.result |= RESULT_ERROR_CODE_APP
 	}
 
 	LogInfo("**********buildApp Complete!**********")
@@ -987,11 +993,13 @@ func (this *GameUpdater) sendReport() {
 		msgtemp += fmt.Sprintf(" [Zip]:%s", "没有")
 	}
 
-	if this.result&0x01 == 0x01 {
+	if this.result&RESULT_ERROR_CODE_COOK == RESULT_ERROR_CODE_COOK {
 		msgtemp += fmt.Sprintf(" Error:%s", "Cook失败")
-	} else if this.result&0x02 == 0x02 {
+	}
+	if this.result&RESULT_ERROR_CODE_APP == RESULT_ERROR_CODE_APP {
 		msgtemp += fmt.Sprintf(" Error:%s", "App失败")
-	} else if this.result&0x04 == 0x04 {
+	}
+	if this.result&RESULT_ERROR_CODE_ZIP == RESULT_ERROR_CODE_ZIP {
 		msgtemp += fmt.Sprintf(" Error:%s", "Zip失败")
 	}
 
