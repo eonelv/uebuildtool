@@ -33,6 +33,7 @@ const (
 
 type MsgFileInfo struct {
 	IsDir    bool
+	Size     int64
 	FileName [1024]byte
 }
 
@@ -67,7 +68,6 @@ func (this *MsgFile) Process(p interface{}) {
 func (this *MsgFile) query(Sender *TCPSender) {
 	msgFileInfo := &MsgFileInfo{}
 	Byte2Struct(reflect.ValueOf(msgFileInfo), this.PData)
-
 	if !msgFileInfo.IsDir {
 		return
 	}
@@ -100,6 +100,7 @@ func (this *MsgFile) query(Sender *TCPSender) {
 		} else {
 			msgFileInfoResult.IsDir = false
 		}
+		msgFileInfoResult.Size = fi.Size()
 
 		data, _ := Struct2Bytes(reflect.ValueOf(msgFileInfoResult))
 		totalData = append(totalData, data...)
