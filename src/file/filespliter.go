@@ -2,13 +2,15 @@
 package file
 
 import (
-	. "core"
 	"fmt"
 	"io"
 	"os"
 	"path/filepath"
 	"strings"
 	"time"
+
+	. "ngcod.com/core"
+	"ngcod.com/utils"
 )
 
 const SizeEach int64 = 5 * 1024 * 1024
@@ -113,7 +115,7 @@ func (this *FileSpliterTask) writeFile(DestFileDir string, splitInfo *FileSplitI
 	os.MkdirAll(DestFileDir, os.ModePerm)
 
 	if splitInfo.part == -1 {
-		return CopyFile(splitInfo.name, fmt.Sprintf("%s/%s", DestFileDir, splitInfo.relName))
+		return utils.CopyFile(splitInfo.name, fmt.Sprintf("%s/%s", DestFileDir, splitInfo.relName))
 	}
 	DestFile := fmt.Sprintf("%s/%s_part%d", DestFileDir, splitInfo.relName, splitInfo.part)
 	//创建目标文件

@@ -4,12 +4,13 @@
 package game
 
 import (
-	. "core"
 	"file"
 	"os"
 	"path/filepath"
 	"strings"
 	"time"
+
+	. "ngcod.com/core"
 )
 
 type EncryptJsonTask struct {

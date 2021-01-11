@@ -2,9 +2,10 @@
 package message
 
 import (
-	. "core"
 	. "def"
 	"reflect"
+
+	. "ngcod.com/core"
 )
 
 func registerNetMsgBuild() {
@@ -70,7 +71,9 @@ type Project struct {
 	Host        [255]byte
 	Account     [255]byte
 	Member      [255]byte
+	BuildStep   [1024]byte
 	SVN         [255]byte
+	Desc        [1024]byte
 	ServerState int32
 }
 

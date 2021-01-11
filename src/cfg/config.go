@@ -7,15 +7,15 @@
 package cfg
 
 import (
-	. "core"
-	. "file"
 	"fmt"
 	"os"
 	"path/filepath"
 	"strconv"
 	"strings"
 	"time"
-	"utils"
+
+	. "ngcod.com/core"
+	"ngcod.com/utils"
 )
 
 var config string = `{
@@ -195,14 +195,14 @@ func (this *Config) ReadConfig() error {
 
 	this.TempFileHome = fmt.Sprintf("%s/TempFile", this.BuilderHome)
 	this.ConfigHome = fmt.Sprintf("%s/config", this.BuilderHome)
-	PathExistAndCreate(this.ConfigHome)
+	utils.PathExistAndCreate(this.ConfigHome)
 	configFileName := this.ConfigHome + "/config.json"
 
 	oldJson, err := utils.ReadJson(configFileName)
 	if err != nil {
 		LogError("Read config Json Failed! 1")
 
-		WriteFile([]byte(config), configFileName)
+		utils.WriteFile([]byte(config), configFileName)
 
 		//使用远程编译， 不用生成脚本文件
 		//WriteFile([]byte(BuildAndroid), this.BuilderHome+"/BuildAndroid.cmd")
@@ -278,10 +278,10 @@ func (this *Config) ReadConfig() error {
 
 func (this *Config) BuildPath() {
 	PackHome := fmt.Sprintf("%s/APack_iOS", this.BuilderHome)
-	PathExistAndCreate(PackHome)
+	utils.PathExistAndCreate(PackHome)
 
 	PackHome = fmt.Sprintf("%s/APack_Android", this.BuilderHome)
-	PathExistAndCreate(PackHome)
+	utils.PathExistAndCreate(PackHome)
 
 	this.ProjectHomePath = fmt.Sprintf("%s/%s", this.BuilderHome, this.ProjectName)
 	this.ProjectHomePath = strings.ReplaceAll(this.ProjectHomePath, `\`, "/")
@@ -300,7 +300,7 @@ func (this *Config) BuildPath() {
 		this.ConfigHome = fmt.Sprintf("%s/config/Android", this.BuilderHome)
 	}
 
-	PathExistAndCreate(this.ConfigHome)
+	utils.PathExistAndCreate(this.ConfigHome)
 
 	this.TempPakPath = fmt.Sprintf("%s/paks", this.TempFileHome)
 	this.ZipSourcePath = fmt.Sprintf("%s/tempFiles", this.TempFileHome)
@@ -308,8 +308,8 @@ func (this *Config) BuildPath() {
 	this.ResOutputContentPath = fmt.Sprintf("%s/Content", this.TempFileHome)
 
 	zipFilePath := fmt.Sprintf("%s/%s", this.OutputPath, this.Today)
-	PathExistAndCreate(zipFilePath)
-	PathExistAndCreate(this.ZipSourcePath)
+	utils.PathExistAndCreate(zipFilePath)
+	utils.PathExistAndCreate(this.ZipSourcePath)
 
 	this.PluginCodePath = fmt.Sprintf("%s/Plugins/ENGCore", this.ProjectHomePath)
 	this.TempPluginCodePath = fmt.Sprintf("%s/ENGCore", this.TempFileHome)

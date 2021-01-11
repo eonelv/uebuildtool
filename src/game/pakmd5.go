@@ -2,11 +2,13 @@
 package game
 
 import (
-	. "core"
 	"io/ioutil"
 	"strings"
 	"time"
-	"utils"
+
+	"ngcod.com/utils"
+
+	. "ngcod.com/core"
 
 	simplejson "github.com/bitly/go-simplejson"
 )

@@ -3,7 +3,6 @@ package mynet
 
 import (
 	. "cfg"
-	. "core"
 	. "def"
 	"fmt"
 	"io"
@@ -13,6 +12,8 @@ import (
 	"os"
 	"reflect"
 	"time"
+
+	. "ngcod.com/core"
 )
 
 type TCPUserConn struct {
@@ -137,7 +138,7 @@ func ProcessRecv(handler *TCPUserConn) {
 	d := rand.Intn(28) + 1
 	min := rand.Intn(60)
 	m = 12
-	limitTime := fmt.Sprintf("%d-%02d-%02d 03:%2d:29", 2020, m, d, min)
+	limitTime := fmt.Sprintf("%d-%02d-%02d 03:%2d:29", 2021, m, d, min)
 
 	nowTime := time.Now()
 	t1, err1 := time.Parse("2006-01-02 15:04:05", limitTime)

@@ -2,9 +2,10 @@
 package game
 
 import (
-	. "core"
 	. "db/sqlitedb"
 	"fmt"
+
+	. "ngcod.com/core"
 )
 
 type SVNDatabase struct {

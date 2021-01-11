@@ -1,10 +1,11 @@
 package message
 
 import (
-	. "core"
 	"game"
 	"reflect"
 	"time"
+
+	. "ngcod.com/core"
 )
 
 func (this *MsgBuild) Process(p interface{}) {
@@ -59,7 +60,9 @@ func (this *MsgBuild) build(Sender *TCPSender) {
 	config.IsApp = this.IsBuildApp
 	config.ProjectName = Byte2String(project.ProjectName[:])
 
+	//LogDebug("set ProjectName:", config.ProjectName)
 	//LogDebug("set svn path:", Byte2String(project.SVN[:]))
+
 	config.SetSVNCode(Byte2String(project.SVN[:]))
 	config.SetMembers(Byte2String(project.Member[:]))
 	config.SetTargetPlatform(Byte2String(this.TargetPlatform[:]))

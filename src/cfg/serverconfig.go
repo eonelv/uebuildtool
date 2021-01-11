@@ -2,12 +2,12 @@
 package cfg
 
 import (
-	. "core"
-	. "file"
 	"fmt"
 	"os"
 	"path/filepath"
-	"utils"
+
+	. "ngcod.com/core"
+	"ngcod.com/utils"
 )
 
 type ServerConfig struct {
@@ -28,13 +28,13 @@ func (this *ServerConfig) ReadServerConfig() error {
 	}
 
 	configHome := fmt.Sprintf("%s/config", this.BuilderHome)
-	PathExistAndCreate(configHome)
+	utils.PathExistAndCreate(configHome)
 	configFileName := configHome + "/serverconfig.json"
 
 	oldJson, err := utils.ReadJson(configFileName)
 	if err != nil {
 		LogError("Read config Json Failed! 1.")
-		WriteFile([]byte(serverconfig), configFileName)
+		utils.WriteFile([]byte(serverconfig), configFileName)
 		return err
 	}
 	ConfigDatas := oldJson.MustMap()

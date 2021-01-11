@@ -2,13 +2,14 @@
 package message
 
 import (
-	. "core"
 	. "def"
 	"io/ioutil"
 	"os"
 	"path/filepath"
 	"reflect"
 	"strings"
+
+	. "ngcod.com/core"
 )
 
 func registerNetMsgFileInfo() {

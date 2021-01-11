@@ -1,9 +1,10 @@
 package message
 
 import (
-	. "core"
 	. "def"
 	"reflect"
+
+	. "ngcod.com/core"
 )
 
 type MsgServerRegister struct {

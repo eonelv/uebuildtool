@@ -2,11 +2,11 @@
 package game
 
 import (
-	. "core"
-	. "file"
 	"fmt"
 	"sync"
-	"utils"
+
+	. "ngcod.com/core"
+	"ngcod.com/utils"
 
 	simplejson "github.com/bitly/go-simplejson"
 )
@@ -80,7 +80,7 @@ func (this *Reslist) Flush(version int64) error {
 		encrypt.Encrypt(OutBytes, 0, len(OutBytes), true)
 	}
 
-	err = WriteFile(OutBytes, fmt.Sprintf("%s/reslist_%d.json", this.ZipSourcePakPath, version))
+	err = utils.WriteFile(OutBytes, fmt.Sprintf("%s/reslist_%d.json", this.ZipSourcePakPath, version))
 	if err != nil {
 		LogError("Write reslist.json Error!", err)
 		return err
@@ -88,9 +88,9 @@ func (this *Reslist) Flush(version int64) error {
 	//本地缓存
 	//先备份
 	backupReslistFileName := fmt.Sprintf("%s/reslist_back.json", this.configHome)
-	CopyFile(this.reslistPath, backupReslistFileName)
+	utils.CopyFile(this.reslistPath, backupReslistFileName)
 
-	err = WriteFile(Bytes, this.reslistPath)
+	err = utils.WriteFile(Bytes, this.reslistPath)
 	if err != nil {
 		LogError("Write reslist.json Error!", err)
 		return err
@@ -105,16 +105,16 @@ func (this *Reslist) Flush(version int64) error {
 		return err1
 	}
 	//跟随外网包一起发布到资源服务器-游戏拉取
-	err = WriteFile(Bytes, fmt.Sprintf("%s/pakversion_%d.json", this.ZipSourcePakPath, version))
+	err = utils.WriteFile(Bytes, fmt.Sprintf("%s/pakversion_%d.json", this.ZipSourcePakPath, version))
 	if err != nil {
 		LogError("Write reslist.json Error!", err)
 		return err
 	}
 	//本地缓存
 	backuppakversionName := fmt.Sprintf("%s/pakversion_back.json", this.configHome)
-	CopyFile(this.pakversionPath, backuppakversionName)
+	utils.CopyFile(this.pakversionPath, backuppakversionName)
 
-	err = WriteFile(Bytes, this.pakversionPath)
+	err = utils.WriteFile(Bytes, this.pakversionPath)
 	if err != nil {
 		LogError("Write reslist.json Error!", err)
 		return err
@@ -125,10 +125,10 @@ func (this *Reslist) Flush(version int64) error {
 func (this *Reslist) Reverse() {
 
 	backupReslistFileName := fmt.Sprintf("%s/reslist_back.json", this.configHome)
-	CopyFile(backupReslistFileName, this.reslistPath)
+	utils.CopyFile(backupReslistFileName, this.reslistPath)
 
 	if this.IsPatch {
 		backuppakversionName := fmt.Sprintf("%s/pakversion_back.json", this.configHome)
-		CopyFile(backuppakversionName, this.pakversionPath)
+		utils.CopyFile(backuppakversionName, this.pakversionPath)
 	}
 }

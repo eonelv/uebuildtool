@@ -4,7 +4,6 @@ package game
 import (
 	"bufio"
 	. "cfg"
-	. "core"
 	"crypto/md5"
 	. "def"
 	. "file"
@@ -16,7 +15,9 @@ import (
 	"strings"
 	"sync"
 	"time"
-	"utils"
+
+	. "ngcod.com/core"
+	"ngcod.com/utils"
 
 	simplejson "github.com/bitly/go-simplejson"
 )
@@ -167,7 +168,7 @@ func (this *GameUpdater) DoUpdate() {
 	this.readProjectGameSetting()
 
 	dynamiclistFileNme := this.config.ProjectHomePath + "/Content/json/dynamiclist.json"
-	WriteFile([]byte(this.dynamicUpdateJsonContent), dynamiclistFileNme)
+	utils.WriteFile([]byte(this.dynamicUpdateJsonContent), dynamiclistFileNme)
 
 	//写入代码版本号到C++（这里还需要读取Sqlite的功能，最后再加吧）
 	this.writeVersionCPP()
@@ -345,7 +346,7 @@ func (this *GameUpdater) buildFirst() {
 	this.netReport("预编译项目")
 	LogInfo("**********Begin checkout svn code**********")
 	ProjectFileParam := fmt.Sprintf(`-Project=%s/%s.uproject`, this.config.ProjectHomePath, this.config.ProjectName)
-	Exec(this.config.UnrealBuildTool, "Development", "Win64", ProjectFileParam, "-TargetType=Editor", "-Progress", "-NoHotReloadFromIDE")
+	utils.Exec(this.config.UnrealBuildTool, "Development", "Win64", ProjectFileParam, "-TargetType=Editor", "-Progress", "-NoHotReloadFromIDE")
 	LogInfo("**********BuildFirst Complete!**********")
 }
 
@@ -380,11 +381,11 @@ func (this *GameUpdater) writeCrypto() {
 			}
 		}
 	}
-	WriteFile([]byte(encryptLine), this.config.ProjectEncryptIniPath)
+	utils.WriteFile([]byte(encryptLine), this.config.ProjectEncryptIniPath)
 
 	this.isEncryptPak = true
 	tempMsg := fmt.Sprintf("{\n\"EncryptionKey\":{\"Key\":\"%s\"}\n}", pakEncryptKey)
-	WriteFile([]byte(tempMsg), cryptoJsonPath)
+	utils.WriteFile([]byte(tempMsg), cryptoJsonPath)
 }
 
 //build pak 可以并行操作
@@ -410,7 +411,7 @@ func (this *GameUpdater) findPakContent() {
 func (this *GameUpdater) buildPak() {
 	this.netReport("打包Pak")
 	LogInfo("**********Begin buildPak**********")
-	if ok, _ := PathExists(this.config.TempPakPath); !ok {
+	if ok, _ := utils.PathExists(this.config.TempPakPath); !ok {
 		os.MkdirAll(this.config.TempPakPath, os.ModePerm)
 	} else {
 		os.RemoveAll(this.config.TempPakPath)
@@ -490,7 +491,7 @@ func (this *GameUpdater) go_CopyFile() {
 		case s := <-this.chanWattingCopyFileName:
 			fileName := s.sourceParentPath + "/" + s.relName
 			targetFileName := this.config.ResOutputContentPath + "/" + s.relName
-			CopyFile(fileName, targetFileName)
+			utils.CopyFile(fileName, targetFileName)
 			if this.config.IsEncrypt() && (strings.HasSuffix(s.relName, ".json") || strings.HasSuffix(s.relName, ".lua")) {
 				EncryptFile(targetFileName)
 				CompressFile(targetFileName)
@@ -690,7 +691,7 @@ func (this *GameUpdater) cookDatas() {
 
 	this.netReport("Cook所有资源")
 
-	WriteFile([]byte(this.cookGameConfigContent), this.config.SourceGameConfigPath)
+	utils.WriteFile([]byte(this.cookGameConfigContent), this.config.SourceGameConfigPath)
 	LogInfo("**********Begin Cook Content**********")
 	ProjectFile := fmt.Sprintf("%s/%s.uproject", this.config.ProjectHomePath, this.config.ProjectName)
 	LogFile := fmt.Sprintf("%s/log/Cook-2020.txt", this.config.ProjectHomePath)
@@ -698,7 +699,7 @@ func (this *GameUpdater) cookDatas() {
 	var pLogFormatted string = fmt.Sprintf("-abslog=%s", LogFile)
 	var pPlatformFormatted string = fmt.Sprintf("-TargetPlatform=%s", this.config.CookPlatformType)
 
-	if ok, _ := PathExists(this.config.OutputPath); !ok {
+	if ok, _ := utils.PathExists(this.config.OutputPath); !ok {
 		os.MkdirAll(this.config.OutputPath, os.ModePerm)
 	}
 
@@ -711,7 +712,7 @@ func (this *GameUpdater) cookDatas() {
 
 func (this *GameUpdater) writeVersionCPP() {
 	code := fmt.Sprintf(codetemp, time.Now(), this.version, pakEncryptKey, this.config.IsEncrypt(), this.config.IsPatch)
-	WriteFile([]byte(code), this.config.VersionCppFilePath)
+	utils.WriteFile([]byte(code), this.config.VersionCppFilePath)
 }
 
 func (this *GameUpdater) buildApp() bool {
@@ -772,7 +773,7 @@ func (this *GameUpdater) buildApp() bool {
 			cmdString += " "
 			cmdString += a
 		}
-		WriteFile([]byte(cmdString), tempBuildFile)
+		utils.WriteFile([]byte(cmdString), tempBuildFile)
 	} else {
 		achieveDir = fmt.Sprintf("%s/%s", this.config.OutputPath, this.config.GetTargetPlatform())
 
@@ -809,7 +810,7 @@ func (this *GameUpdater) buildApp() bool {
 			cmdString += " "
 			cmdString += a
 		}
-		WriteFile([]byte(cmdString), tempBuildFile)
+		utils.WriteFile([]byte(cmdString), tempBuildFile)
 	}
 	LogDebug("waitting Remove ", achieveDir)
 	defer os.RemoveAll(achieveDir)
@@ -844,11 +845,11 @@ func (this *GameUpdater) buildApp() bool {
 				prefixPatch = "sp_"
 			}
 			this.outAppFileName = fmt.Sprintf("%s/%s%s_v%d.%s", zipFilePath, prefixPatch, name[:index], this.version, name[index+1:])
-			CopyFile(achieveDir+"/"+fi.Name(), this.outAppFileName)
+			utils.CopyFile(achieveDir+"/"+fi.Name(), this.outAppFileName)
 		}
 	}
 
-	if ok, _ := PathExists(this.outAppFileName); ok {
+	if ok, _ := utils.PathExists(this.outAppFileName); ok {
 		LogInfo("**********buildApp Success!**********")
 		return true
 	} else {
@@ -897,7 +898,7 @@ func (this *GameUpdater) svnCheckout() {
 
 	//内网才需要更新项目代码
 	if !this.config.IsPatch {
-		ok, _ := PathExists(this.config.ProjectName)
+		ok, _ := utils.PathExists(this.config.ProjectName)
 		if !ok {
 			ExecSVNCmd("svn", "checkout", this.config.GetSVNCode(), this.config.ProjectName)
 		} else {
@@ -936,12 +937,12 @@ func (this *GameUpdater) writeVersion(oldJson *simplejson.Json) bool {
 		LogError("Read Json Data Error!", err)
 		return false
 	}
-	errWrite := WriteFile(Bytes, this.config.ConfigHome+"/version.json")
+	errWrite := utils.WriteFile(Bytes, this.config.ConfigHome+"/version.json")
 	if errWrite != nil {
 		LogError("Write version.json Error!", errWrite)
 		return false
 	}
-	errWrite = WriteFile(Bytes, fmt.Sprintf("%s/version_%d.json", this.config.ZipSourcePath, this.version))
+	errWrite = utils.WriteFile(Bytes, fmt.Sprintf("%s/version_%d.json", this.config.ZipSourcePath, this.version))
 	if errWrite != nil {
 		LogError("Write version.json to package Error!", errWrite)
 		return false
@@ -967,7 +968,7 @@ func (this *GameUpdater) clear() {
 	//还原DefaultGame.ini
 	//    如果下次是内网包，更新SVN时会删除现有的
 	//    如果下次是外网包，使用还原的这份
-	WriteFile([]byte(this.fullGameConfigContent), this.config.SourceGameConfigPath)
+	utils.WriteFile([]byte(this.fullGameConfigContent), this.config.SourceGameConfigPath)
 
 	multiThreadTask := &CopyDirTask{}
 	ExecTask(multiThreadTask, this.config.TempJsonHome, this.config.JsonHome)

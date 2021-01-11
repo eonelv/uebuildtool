@@ -2,7 +2,6 @@
 package main
 
 import (
-	. "core"
 	"fmt"
 	"mynet"
 	"net/http"
@@ -10,7 +9,10 @@ import (
 	"path/filepath"
 	"runtime"
 	"strings"
-	"utils"
+
+	. "ngcod.com/core"
+
+	"ngcod.com/utils"
 )
 
 /*

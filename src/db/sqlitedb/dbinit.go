@@ -1,11 +1,30 @@
 package sqlitedb
 
 import (
-	. "core"
+	SQL "database/sql"
 	"io/ioutil"
 	"os"
 	"strings"
+
+	"ngcod.com/db/sqlitedb"
+
+	. "ngcod.com/core"
 )
+
+var DBMgr sqlitedb.DataBaseMgr
+
+func CreateDBMgr(path string) bool {
+	LogInfo("db path:", path)
+	db, err := SQL.Open("sqlite3", path)
+	//	db, err := SQL.Open("mysql", "ouyang:ouyang@tcp(192.168.0.10:3306)/zentao?charset=utf8")
+	if err != nil {
+		LogError("DataBase Connect Error %s \n", err.Error())
+		return CreateDB()
+	}
+	DBMgr = sqlitedb.DataBaseMgr{}
+	DBMgr.DBServer = db
+	return true
+}
 
 func CreateDB() bool {
 	LogInfo("Create DB")

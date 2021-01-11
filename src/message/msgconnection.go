@@ -2,11 +2,12 @@ package message
 
 import (
 	. "cfg"
-	. "core"
 	. "def"
 	"reflect"
 	"strings"
-	"utils"
+
+	. "ngcod.com/core"
+	"ngcod.com/utils"
 )
 
 type MsgConnection struct {
