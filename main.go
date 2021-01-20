@@ -39,10 +39,10 @@ func startFileServer() {
 
 	http.HandleFunc("/", HomeHandler)
 	p, _ := filepath.Abs(filepath.Dir(os.Args[0]))
-	http.Handle("/log/", http.FileServer(http.Dir(p)))
+	http.Handle("/log/", mynet.FileServer(http.Dir(p)))
 
-	http.Handle("/APack_Android/", http.FileServer(http.Dir(p)))
-	http.Handle("/APack_iOS/", http.FileServer(http.Dir(p)))
+	http.Handle("/APack_Android/", mynet.FileServer(http.Dir(p)))
+	http.Handle("/APack_iOS/", mynet.FileServer(http.Dir(p)))
 
 	err := http.ListenAndServe(":80", nil)
 	if err != nil {
@@ -52,12 +52,12 @@ func startFileServer() {
 
 func HomeHandler(w http.ResponseWriter, r *http.Request) {
 	webContext :=
-		`<h1 align="center">%s编译输出</h1>
+		`<font size="6"><h1 align="center">%s编译输出</h1>
 		<ul>
-		<li><a href="http://%s/APack_Android">Android包</a></li>
-		<li><a href="http://%s/APack_iOS">iOS包</a></li>
-		<li><a href="http://%s/log">日志</a></li>
-		</ul>`
+		<h1><li><a href="http://%s/APack_Android">Android包</a></li></h1>
+		<h1><li><a href="http://%s/APack_iOS">iOS包</a></li></h1>
+		<h1><li><a href="http://%s/log">日志</a></li></h1>
+		</ul></font">`
 
 	w.Write([]byte(fmt.Sprintf(webContext, localIP, localIP, localIP, localIP)))
 }
