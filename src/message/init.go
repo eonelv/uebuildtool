@@ -13,4 +13,5 @@ func init() {
 	registerNetMsgBindServer()
 	registerNetMsgNetReport()
 	registerNetMsgFileInfo()
+	registerNetMsgUnRegister()
 }

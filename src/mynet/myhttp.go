@@ -126,10 +126,10 @@ func dirList(w ResponseWriter, r *Request, f File) {
 	})
 
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
-	fmt.Fprintf(w, "<font size=\"4\"><pre><h1><a href='/'>Home</a></h1>\n<ul>")
-	var lineFormat string = "<li><h1><a href=\"%s\">%s<font size=\"3\"> Size:%v (M)--%s</font></a></h1></li>"
+	fmt.Fprintf(w, "<pre><font size='4'><h1><a href='/'>Home</a></font></h1>\n<ul>")
+	var lineFormat string
 	for _, d := range dirs {
-		lineFormat = "<li><h1><a href=\"%s\">%s</a><font color='#2692d7' size=\"5\"> Size:%v (M)-%s</font></h1></li>"
+		lineFormat = "<li><h1><a href=\"%s\">%s</a><font color='#2692d7' size='4'> Size:%v (M)-%s</font></h1></li>"
 		name := d.Name()
 		modifyTime := time.Unix(d.ModTime().Unix(), 0).Format("2006-01-02 15:04:05")
 		if d.IsDir() {
@@ -140,14 +140,14 @@ func dirList(w ResponseWriter, r *Request, f File) {
 		// string or fragment.
 		url := url.URL{Path: name}
 		if d.IsDir() {
-			lineFormat = "<li><h1><a href=\"%s\">%s</a><font color='#3d7f29' size=\"5\"> %s</font></h1></li>"
+			lineFormat = "<li><h1><a href=\"%s\">%s</a><font color='#3d7f29' size='4'> %s</font></h1></li>"
 			fmt.Fprintf(w, lineFormat, url.String(), name, modifyTime)
 		} else {
 			fmt.Fprintf(w, lineFormat, url.String(), name, d.Size()/1024/1024, modifyTime)
 		}
 
 	}
-	fmt.Fprintf(w, "</ul></pre></font>\n")
+	fmt.Fprintf(w, "</ul></pre>\n")
 }
 
 // ServeContent replies to the request using the content in the

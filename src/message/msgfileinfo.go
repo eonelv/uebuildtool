@@ -7,6 +7,7 @@ import (
 	"os"
 	"path/filepath"
 	"reflect"
+	"sort"
 	"strings"
 
 	. "ngcod.com/core"
@@ -89,6 +90,17 @@ func (this *MsgFile) query(Sender *TCPSender) {
 	fileName = dir + "/" + fileName
 	rd, _ := ioutil.ReadDir(fileName)
 
+	sort.Slice(rd, func(i, j int) bool {
+		if (rd[i].IsDir() && rd[j].IsDir()) || (!rd[i].IsDir() && !rd[j].IsDir()) {
+			return rd[i].ModTime().Unix()-rd[j].ModTime().Unix() > 0
+		} else {
+			if rd[i].IsDir() {
+				return true
+			} else {
+				return false
+			}
+		}
+	})
 	for _, fi := range rd {
 		count++
 		msgFileInfoResult := &MsgFileInfo{}

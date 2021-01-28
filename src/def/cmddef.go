@@ -7,13 +7,14 @@ const (
 	CMD_LOGIN      uint16 = 1003
 	CMD_TALK       uint16 = 1006
 
-	CMD_REGISTER_SERVER uint16 = 50007
-	CMD_BIND_SERVER     uint16 = 50008
-	CMD_BUILD           uint16 = 50010
-	CMD_BUILD_INFO      uint16 = 50011
-	CMD_PROJECT         uint16 = 50012
-	CMD_NET_REPORT      uint16 = 50013
-	CMD_FILE            uint16 = 50014
+	CMD_REGISTER_SERVER    uint16 = 50007
+	CMD_BIND_SERVER        uint16 = 50008
+	CMD_BUILD              uint16 = 50010
+	CMD_BUILD_INFO         uint16 = 50011
+	CMD_PROJECT            uint16 = 50012
+	CMD_NET_REPORT         uint16 = 50013
+	CMD_FILE               uint16 = 50014
+	CMD_UNREGISTER_SERSVER uint16 = 50015
 )
 
 const (

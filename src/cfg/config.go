@@ -21,11 +21,11 @@ import (
 var config string = `{
 	"svncode":"",
 	"projectName":"ENGGame",
-	"ue_exe":"C:/Program Files/Epic Games/UE_4.24/Engine/Binaries/Win64/UE4Editor.exe",
-	"unrealBuildTool":"C:/Program Files/Epic Games/UE_4.24/Engine/Binaries/DotNET/UnrealBuildTool.exe",
-	"automationTool":"C:/Program Files/Epic Games/UE_4.24/Engine/Build/BatchFiles/RunUAT.bat",
-	"UnrealPak":"C:/Program Files/Epic Games/UE_4.24/Engine/Binaries/Win64/UnrealPak.exe",
-	"TeamMembers":"liwei-simb",
+	"ue_exe":"C:/eonegame/UnrealEngine/Engine/Binaries/Win64/UE4Editor.exe",
+	"unrealBuildTool":"C:/eonegame/UnrealEngine//Engine/Binaries/DotNET/UnrealBuildTool.exe",
+	"automationTool":"C:/eonegame/UnrealEngine//Engine/Build/BatchFiles/RunUAT.bat",
+	"UnrealPak":"C:/eonegame/UnrealEngine//Engine/Binaries/Win64/UnrealPak.exe",
+	"TeamMembers":"liwei",
 	"isPatch":1,
 	"isDebugTool":0,
 	"isEncrypt":0
