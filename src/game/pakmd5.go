@@ -79,7 +79,8 @@ func (this *PakMD5Task) ProcessTask(DestFileDir string) {
 	for {
 		select {
 		case s := <-this.channel:
-			md5 := CalcFileMD5(s.name)
+			md5 := utils.CalcFileMD5(s.name)
+			LogDebug("Calc All ResList'MD5:", s.name, "=", md5)
 			RelName := string(s.name[strings.Count(this.path, ""):])
 			index := strings.LastIndex(RelName, "_p_")
 			if index == -1 {
@@ -97,7 +98,7 @@ func (this *PakMD5Task) ProcessTask(DestFileDir string) {
 			fileInfo.size = s.size
 
 			this.chanMD5 <- &ResFilePair{RelName, fileInfo}
-		case <-time.After(2 * time.Second):
+		case <-time.After(5 * time.Second):
 			return
 		}
 	}
@@ -176,7 +177,7 @@ func (this *PakMD5) writeReslist() {
 
 				gJson.Set(pname, pJson)
 
-				LogDebug("1. Task Length", len(taskJson), Key)
+				//LogDebug("1. Task Length", len(taskJson), Key)
 				this.Reslist.ReslistData.Set(grandName, gJson)
 			} else {
 				pJson, ok = gJson.CheckGet(pname)
@@ -191,7 +192,7 @@ func (this *PakMD5) writeReslist() {
 					taskJson1 = append(taskJson1, itemC)
 					pJson.Set("tasks", taskJson1)
 
-					LogDebug("2. Task Length", len(taskJson1), Key)
+					//LogDebug("2. Task Length", len(taskJson1), Key)
 					gJson.Set(pname, pJson)
 				} else {
 					tempTaskJson, ok = pJson.CheckGet("tasks")
@@ -204,7 +205,7 @@ func (this *PakMD5) writeReslist() {
 						taskJson1 = append(taskJson1, itemC)
 						pJson.Set("tasks", taskJson1)
 
-						LogDebug("3. Task Length", len(taskJson1), Key)
+						//LogDebug("3. Task Length", len(taskJson1), Key)
 					} else {
 						taskJson := tempTaskJson.MustArray()
 						if len(taskJson) == 0 {
@@ -213,7 +214,7 @@ func (this *PakMD5) writeReslist() {
 							taskJson = append(taskJson, itemC)
 						}
 						pJson.Set("tasks", taskJson)
-						LogDebug("4. Task Length", len(taskJson), Key)
+						//LogDebug("4. Task Length", len(taskJson), Key)
 					}
 				}
 			}

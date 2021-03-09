@@ -65,8 +65,9 @@ func (this *MsgBuild) build(Sender *TCPSender) {
 
 	config.SetSVNCode(Byte2String(project.SVN[:]))
 	config.SetMembers(Byte2String(project.Member[:]))
-	config.SetTargetPlatform(Byte2String(this.TargetPlatform[:]))
 	config.SetCookflavor(Byte2String(this.Cookflavor[:]))
+	config.SetTargetPlatform(Byte2String(this.TargetPlatform[:]))
+
 	config.BuildPath()
 
 	msgBuildInfo := &MsgBuildInfo{}

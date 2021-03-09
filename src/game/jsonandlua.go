@@ -46,7 +46,7 @@ func (this *EncryptJsonTask) WriteToChannel(SrcFileDir string) {
 }
 
 func (this *EncryptJsonTask) ProcessTask(DestFileDir string) {
-	LogDebug("processTask by EncryptJsonTask")
+	//LogDebug("processTask by EncryptJsonTask")
 	for {
 		select {
 		case s := <-this.channel:

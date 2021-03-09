@@ -4,7 +4,6 @@ package game
 import (
 	"bufio"
 	. "cfg"
-	"crypto/md5"
 	. "def"
 	. "file"
 	"fmt"
@@ -213,6 +212,15 @@ func (this *GameUpdater) DoUpdate() {
 
 	this.calcNewMD5()
 	Result := this.merge(oldJson)
+
+	if !this.config.IsPatch {
+		oldInnerJson, err := utils.ReadJson(this.config.ConfigHome + "/versionInner.json")
+		if err != nil {
+			LogError("Read Old 'versionInner.json' Failed!")
+		} else {
+			Result = this.mergeInner(Result, oldInnerJson)
+		}
+	}
 	this.copyFiles(Result)
 
 	//4. 根据对比结果生成pak
@@ -260,6 +268,12 @@ func (this *GameUpdater) DoUpdate() {
 	}
 	//写入Version.json文件
 	okVersion := this.writeVersion(oldJson)
+	if !okVersion {
+		this.Reslist.Reverse()
+		this.clearWhenError()
+	}
+
+	okVersion = this.writeInnerVersion(Result)
 	if !okVersion {
 		this.Reslist.Reverse()
 		this.clearWhenError()
@@ -442,7 +456,7 @@ func (this *GameUpdater) go_build() {
 		select {
 		case s := <-this.chanPakPath:
 			this.buildSinglePak(s)
-		case <-time.After(1 * time.Second):
+		case <-time.After(10 * time.Second):
 			return
 		}
 	}
@@ -502,6 +516,36 @@ func (this *GameUpdater) go_CopyFile() {
 	}
 }
 
+func (this *GameUpdater) mergeInner(OldResult map[string]*SMD5, innerJson *simplejson.Json) map[string]*SMD5 {
+	innerMD5Data := innerJson.MustMap()
+
+	// projectContentPath := this.config.ProjectHomePath + "/Content"
+	// var parentSourcePath string = projectContentPath
+
+	for Key := range innerMD5Data {
+		OldMD5, OK := OldResult[Key]
+		_, InnerOK := innerMD5Data[Key]
+		if !InnerOK {
+			LogDebug("Merge Inner:", "Inner Json no Key=", Key)
+			continue
+		}
+		NewMD5, NewOK := this.newMD5Data[Key]
+		if !NewOK {
+			LogDebug("Merge Inner:", "newMD5Data no Key=", Key)
+			continue
+		}
+		if OK {
+			OldMD5.md5 = NewMD5.md5
+			LogDebug("Merge Inner:", "Update Md5", Key, NewMD5.md5)
+		} else {
+			OldMD5 = NewMD5
+			LogDebug("Merge Inner:", "Set Md5", Key, NewMD5.md5)
+		}
+		OldResult[Key] = OldMD5
+	}
+	return OldResult
+}
+
 func (this *GameUpdater) merge(oldJson *simplejson.Json) map[string]*SMD5 {
 	OldMD5Data := oldJson.MustMap()
 	RemoveList := make(map[string]byte)
@@ -517,6 +561,7 @@ func (this *GameUpdater) merge(oldJson *simplejson.Json) map[string]*SMD5 {
 		}
 	}
 	for Key := range RemoveList {
+		LogDebug("merge: delete Version's Key=", Key)
 		delete(OldMD5Data, Key)
 	}
 
@@ -530,6 +575,8 @@ func (this *GameUpdater) merge(oldJson *simplejson.Json) map[string]*SMD5 {
 		NewMD5 := this.newMD5Data[Key]
 		if OldMD5 != NewMD5.md5 {
 			ResultList[Key] = NewMD5
+			tempMd5 := utils.CalcFileMD5(this.config.CookedPath + "/" + Key)
+			LogDebug("MD5 is diffrent, Key=", Key, "Old=", OldMD5, "New=", NewMD5.md5, "Act=", tempMd5)
 			oldJson.Set(Key, NewMD5.md5)
 		}
 	}
@@ -581,7 +628,7 @@ func (this *GameUpdater) calcSingle() {
 		case s := <-this.chanFileName:
 			parentSourcePath = projectContentPath
 
-			md5 := CalcFileMD5(s)
+			md5 := utils.CalcFileMD5(s)
 			var RelName string
 			if strings.Contains(s, this.config.CookedPath) {
 				RelName = string(s[strings.Count(this.config.CookedPath, ""):])
@@ -950,6 +997,38 @@ func (this *GameUpdater) writeVersion(oldJson *simplejson.Json) bool {
 	return true
 }
 
+func (this *GameUpdater) writeInnerVersion(InnerVersion map[string]*SMD5) bool {
+	if this.config.IsPatch {
+		s := "{}"
+		errWriteNil := utils.WriteFile([]byte(s), this.config.ConfigHome+"/versionInner.json")
+		if errWriteNil != nil {
+			LogError("Write versionInner.json Error!", errWriteNil)
+			return false
+		}
+		return true
+	}
+	oldJson := simplejson.New()
+	for Key := range InnerVersion {
+		OldMD5, OK := InnerVersion[Key]
+		if !OK {
+			continue
+		}
+		oldJson.Set(Key, OldMD5.md5)
+	}
+
+	Bytes, err := oldJson.MarshalJSON()
+	if err != nil {
+		LogError("writeInnerVersion oldJson convert to byte Data Error!", err)
+		return false
+	}
+	errWrite := utils.WriteFile(Bytes, this.config.ConfigHome+"/versionInner.json")
+	if errWrite != nil {
+		LogError("Write versionInner.json Error!", errWrite)
+		return false
+	}
+	return true
+}
+
 func (this *GameUpdater) clear() {
 	//删除缓存文件
 	//os.RemoveAll(this.config.ResOutputContentPath)
@@ -1056,11 +1135,6 @@ func (this *GameUpdater) netReport(msg string) {
 	}
 }
 
-func MD5(pData []byte) string {
-	md5 := md5.Sum(pData)
-	return string(md5[:])
-}
-
 func ReadFileData(filePath string) ([]byte, error) {
 	datas, err := ioutil.ReadFile(filePath)
 	if err != nil {
@@ -1068,13 +1142,4 @@ func ReadFileData(filePath string) ([]byte, error) {
 	}
 
 	return datas, nil
-}
-
-func CalcFileMD5(filePath string) string {
-	bytes, err := ioutil.ReadFile(filePath)
-	if err != nil {
-		return ""
-	}
-	md5 := md5.Sum(bytes)
-	return fmt.Sprintf("%x", md5)
 }

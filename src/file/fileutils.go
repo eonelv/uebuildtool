@@ -62,7 +62,7 @@ func (this *CopyDirTask) ProcessTask(DestFileDir string) {
 		select {
 		case s := <-this.channel:
 			utils.CopyFile(s.Key, DestFileDir+"/"+s.Value+this.TargetNamePostfix)
-		case <-time.After(1 * time.Second):
+		case <-time.After(10 * time.Second):
 			return
 		}
 	}
@@ -98,7 +98,7 @@ func (this *RenameDirTask) ProcessTask(DestFileDir string) {
 		select {
 		case s := <-this.channel:
 			os.Rename(s, s+this.TargetNamePostfix)
-		case <-time.After(1 * time.Second):
+		case <-time.After(10 * time.Second):
 			return
 		}
 	}
@@ -265,7 +265,7 @@ func ExecCookCmd(cmdStr string, args ...string) error {
 		testString += " "
 		testString += a
 	}
-	fmt.Println(testString)
+	LogDebug("Cook Command:", cmdStr, testString)
 
 	err := utils.Exe_Cmd(cmdStr, false, args...)
 	return err

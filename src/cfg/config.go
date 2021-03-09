@@ -160,6 +160,11 @@ func (this *Config) GetTargetPlatform() string {
 
 func (this *Config) SetCookflavor(v string) {
 	this.cookflavor = v
+	if this.targetPlatform == iOS {
+		this.CookPlatformType = iOS
+	} else {
+		this.CookPlatformType = fmt.Sprintf("%s_%s", this.targetPlatform, this.cookflavor)
+	}
 }
 
 func (this *Config) GetCookflavor() string {

@@ -98,7 +98,7 @@ func (this *FileSpliterTask) ProcessTask(DestFileDir string) {
 		select {
 		case mi := <-this.channel:
 			this.writeFile(DestFileDir, mi)
-		case <-time.After(2 * time.Second):
+		case <-time.After(10 * time.Second):
 			return
 		}
 	}
