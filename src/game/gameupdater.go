@@ -47,6 +47,15 @@ const (
 	RESULT_ERROR_CODE_ZIP  int32 = 0x04
 )
 
+const (
+	UASSET_EXT string = ".uasset"
+	UMAP_EXT   string = ".umap"
+	UEXP_EXT   string = ".uexp"
+	UBULK_EXT  string = ".ubulk"
+	JSON_EXT   string = ".json"
+	LUA_EXT    string = ".lua"
+)
+
 type SMD5 struct {
 	relName          string
 	sourceParentPath string
@@ -506,11 +515,27 @@ func (this *GameUpdater) go_CopyFile() {
 			fileName := s.sourceParentPath + "/" + s.relName
 			targetFileName := this.config.ResOutputContentPath + "/" + s.relName
 			utils.CopyFile(fileName, targetFileName)
-			if this.config.IsEncrypt() && (strings.HasSuffix(s.relName, ".json") || strings.HasSuffix(s.relName, ".lua")) {
+
+			if strings.HasSuffix(targetFileName, UMAP_EXT) {
+				targetFileName = strings.ReplaceAll(targetFileName, UMAP_EXT, UEXP_EXT)
+				fileName = strings.ReplaceAll(fileName, UMAP_EXT, UEXP_EXT)
+				utils.CopyFile(fileName, targetFileName)
+			} else if strings.HasSuffix(targetFileName, UASSET_EXT) {
+				targetFileName = strings.ReplaceAll(targetFileName, UASSET_EXT, UEXP_EXT)
+				fileName = strings.ReplaceAll(fileName, UASSET_EXT, UEXP_EXT)
+				utils.CopyFile(fileName, targetFileName)
+
+				targetFileName = strings.ReplaceAll(targetFileName, UEXP_EXT, UBULK_EXT)
+				fileName = strings.ReplaceAll(fileName, UEXP_EXT, UBULK_EXT)
+				utils.CopyFile(fileName, targetFileName)
+			}
+
+			if this.config.IsEncrypt() &&
+				(strings.HasSuffix(s.relName, JSON_EXT) || strings.HasSuffix(s.relName, LUA_EXT)) {
 				EncryptFile(targetFileName)
 				CompressFile(targetFileName)
 			}
-		case <-time.After(1 * time.Second):
+		case <-time.After(10 * time.Second):
 			return
 		}
 	}
@@ -518,9 +543,6 @@ func (this *GameUpdater) go_CopyFile() {
 
 func (this *GameUpdater) mergeInner(OldResult map[string]*SMD5, innerJson *simplejson.Json) map[string]*SMD5 {
 	innerMD5Data := innerJson.MustMap()
-
-	// projectContentPath := this.config.ProjectHomePath + "/Content"
-	// var parentSourcePath string = projectContentPath
 
 	for Key := range innerMD5Data {
 		OldMD5, OK := OldResult[Key]
@@ -621,37 +643,31 @@ func (this *GameUpdater) writeNewMD5(completeChan chan bool) {
 
 func (this *GameUpdater) calcSingle() {
 	defer this.wG.Done()
-	projectContentPath := this.config.ProjectHomePath + "/Content"
+	projectContentPath := this.config.ProjectContentPath
 	var parentSourcePath string = projectContentPath
 	for {
 		select {
 		case s := <-this.chanFileName:
-			parentSourcePath = projectContentPath
-
+			parentSourcePath = this.config.CookedPath
 			md5 := utils.CalcFileMD5(s)
-			var RelName string
-			if strings.Contains(s, this.config.CookedPath) {
-				RelName = string(s[strings.Count(this.config.CookedPath, ""):])
-				parentSourcePath = this.config.CookedPath
-			} else if strings.Contains(s, "json") {
-				RelName = string(s[strings.Count(projectContentPath, ""):])
-			} else if strings.Contains(s, "Script") {
-				RelName = string(s[strings.Count(projectContentPath, ""):])
+			if strings.HasSuffix(s, JSON_EXT) || strings.HasSuffix(s, LUA_EXT) {
+				parentSourcePath = projectContentPath
 			}
+
+			RelName := string(s[strings.Count(projectContentPath, ""):])
 			this.chanMD5 <- &SMD5{RelName, parentSourcePath, md5}
-		case <-time.After(1 * time.Second):
+		case <-time.After(5 * time.Second):
 			return
 		}
 	}
 }
 
 func (this *GameUpdater) readAll() {
-	this.readFiles(this.config.CookedPath)
-	LogInfo("**********Check Cooked Path End**********", this.config.CookedPath)
-	this.readFiles(this.config.JsonHome)
-	LogInfo("**********Check Json Path End**********", this.config.JsonHome)
-	this.readFiles(this.config.LuaHome)
-	//this.isReadAll = true
+	// 按Cook之后的文件计算差异
+	// this.readFiles(this.config.CookedPath)
+	// this.readFiles(this.config.JsonHome)
+	// this.readFiles(this.config.LuaHome)
+	this.readFiles(this.config.ProjectContentPath)
 }
 
 func (this *GameUpdater) readFiles(pathname string) {

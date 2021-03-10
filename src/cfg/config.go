@@ -62,8 +62,9 @@ type Config struct {
 	//运行过程中用到的临时源文件目录
 	TempFileHome string
 	//配置文件目录
-	ConfigHome      string
-	ProjectHomePath string
+	ConfigHome         string
+	ProjectHomePath    string
+	ProjectContentPath string
 
 	//项目文件名称 - xxx.uproject
 	ProjectName string
@@ -290,6 +291,7 @@ func (this *Config) BuildPath() {
 
 	this.ProjectHomePath = fmt.Sprintf("%s/%s", this.BuilderHome, this.ProjectName)
 	this.ProjectHomePath = strings.ReplaceAll(this.ProjectHomePath, `\`, "/")
+	this.ProjectContentPath = fmt.Sprintf("%s/%s", this.ProjectHomePath, "Content")
 
 	this.JsonHome = fmt.Sprintf("%s/Content/json", this.ProjectHomePath)
 	this.LuaHome = fmt.Sprintf("%s/Content/Script", this.ProjectHomePath)
