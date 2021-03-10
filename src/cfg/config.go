@@ -7,6 +7,7 @@
 package cfg
 
 import (
+	. "def"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -39,11 +40,6 @@ var BuildIOS string = `uebuildtool.exe -Release=false -Patch=true -targetPlatfor
 
 const svnCore string = `svn://192.168.0.24/client/ue4/ENGCore/Plugins/ENGCore`
 const svnUnLua string = `svn://192.168.0.24/client/ue4/UnLua424/UnLua`
-
-const (
-	iOS     string = "iOS"
-	Android string = "Andoird"
-)
 
 type Config struct {
 	//配置参数
@@ -148,8 +144,10 @@ func (this *Config) GetMembers() string {
 
 func (this *Config) SetTargetPlatform(v string) {
 	this.targetPlatform = v
-	if this.targetPlatform == iOS {
-		this.CookPlatformType = iOS
+	if this.targetPlatform == IOS {
+		this.CookPlatformType = IOS
+	} else if this.targetPlatform == Win64 {
+		this.CookPlatformType = WinNoEditor
 	} else {
 		this.CookPlatformType = fmt.Sprintf("%s_%s", this.targetPlatform, this.cookflavor)
 	}
@@ -161,8 +159,10 @@ func (this *Config) GetTargetPlatform() string {
 
 func (this *Config) SetCookflavor(v string) {
 	this.cookflavor = v
-	if this.targetPlatform == iOS {
-		this.CookPlatformType = iOS
+	if this.targetPlatform == IOS {
+		this.CookPlatformType = IOS
+	} else if this.targetPlatform == Win64 {
+		this.CookPlatformType = WinNoEditor
 	} else {
 		this.CookPlatformType = fmt.Sprintf("%s_%s", this.targetPlatform, this.cookflavor)
 	}
@@ -244,8 +244,8 @@ func (this *Config) ReadConfig() error {
 	this.targetPlatform = Android
 	this.cookflavor = "ETC2"
 
-	this.targetPlatform = iOS
-	this.CookPlatformType = iOS
+	this.targetPlatform = IOS
+	this.CookPlatformType = IOS
 
 	lenParam := len(os.Args)
 
@@ -273,8 +273,10 @@ func (this *Config) ReadConfig() error {
 			LogError("Unkown Param:", line)
 		}
 	}
-	if this.targetPlatform == iOS {
-		this.CookPlatformType = iOS
+	if this.targetPlatform == IOS {
+		this.CookPlatformType = IOS
+	} else if this.targetPlatform == Win64 {
+		this.CookPlatformType = Win64
 	} else {
 		this.CookPlatformType = fmt.Sprintf("%s_%s", this.targetPlatform, this.cookflavor)
 	}
@@ -283,10 +285,13 @@ func (this *Config) ReadConfig() error {
 }
 
 func (this *Config) BuildPath() {
-	PackHome := fmt.Sprintf("%s/APack_iOS", this.BuilderHome)
+	PackHome := fmt.Sprintf("%s/%s", this.BuilderHome, Output_Dir_IOS)
 	utils.PathExistAndCreate(PackHome)
 
-	PackHome = fmt.Sprintf("%s/APack_Android", this.BuilderHome)
+	PackHome = fmt.Sprintf("%s/%s", this.BuilderHome, Output_Dir_Android)
+	utils.PathExistAndCreate(PackHome)
+
+	PackHome = fmt.Sprintf("%s/%s", this.BuilderHome, Output_Dir_Win64)
 	utils.PathExistAndCreate(PackHome)
 
 	this.ProjectHomePath = fmt.Sprintf("%s/%s", this.BuilderHome, this.ProjectName)
@@ -299,11 +304,15 @@ func (this *Config) BuildPath() {
 	this.TempLuaHome = fmt.Sprintf("%s/Script", this.TempFileHome)
 
 	this.CookedPath = fmt.Sprintf("%s/Saved/Cooked/%s/%s/Content", this.ProjectHomePath, this.CookPlatformType, this.ProjectName)
-	if this.targetPlatform == iOS {
-		this.OutputPath = fmt.Sprintf("%s/APack_iOS", this.BuilderHome)
+	if this.targetPlatform == IOS {
+		this.OutputPath = fmt.Sprintf("%s/%s", this.BuilderHome, Output_Dir_IOS)
 		this.ConfigHome = fmt.Sprintf("%s/config/iOS", this.BuilderHome)
+	} else if this.targetPlatform == Win64 {
+		this.OutputPath = fmt.Sprintf("%s/%s", this.BuilderHome, Output_Dir_Win64)
+		this.ConfigHome = fmt.Sprintf("%s/config/Win64", this.BuilderHome)
+		this.CookedPath = fmt.Sprintf("%s/Saved/Cooked/%s/%s/Content", this.ProjectHomePath, WinNoEditor, this.ProjectName)
 	} else {
-		this.OutputPath = fmt.Sprintf("%s/APack_Android", this.BuilderHome)
+		this.OutputPath = fmt.Sprintf("%s/%s", this.BuilderHome, Output_Dir_Android)
 		this.ConfigHome = fmt.Sprintf("%s/config/Android", this.BuilderHome)
 	}
 

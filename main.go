@@ -43,6 +43,7 @@ func startFileServer() {
 
 	http.Handle("/APack_Android/", mynet.FileServer(http.Dir(p)))
 	http.Handle("/APack_iOS/", mynet.FileServer(http.Dir(p)))
+	http.Handle("/APack_Win64/", mynet.FileServer(http.Dir(p)))
 
 	err := http.ListenAndServe(":80", nil)
 	if err != nil {
@@ -56,6 +57,7 @@ func HomeHandler(w http.ResponseWriter, r *http.Request) {
 		<ul>
 		<h1><li><a href="http://%s/APack_Android">Android包</a></li></h1>
 		<h1><li><a href="http://%s/APack_iOS">iOS包</a></li></h1>
+		<h1><li><a href="http://%s/APack_Win64">Win64包</a></li></h1>
 		<h1><li><a href="http://%s/log">日志</a></li></h1>
 		</ul></font">`
 

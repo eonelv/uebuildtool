@@ -80,8 +80,8 @@ func (this *Reslist) Flush(version int64) error {
 		LogError("Read Json Data Error!", err)
 		return err
 	}
-	//跟随外网包一起发布到资源服务器
 
+	//跟随外网包一起发布到资源服务器
 	OutBytes := CloneBytes(Bytes)
 	copy(Bytes, OutBytes)
 	//加密
@@ -90,35 +90,37 @@ func (this *Reslist) Flush(version int64) error {
 		encrypt.InitEncrypt(183, 46, 15, 43, 0, 88, 232, 90)
 		encrypt.Encrypt(OutBytes, 0, len(OutBytes), true)
 	}
-
 	err = utils.WriteFile(OutBytes, fmt.Sprintf("%s/reslist_%d.json", this.ZipSourcePakPath, version))
 	if err != nil {
 		LogError("Write reslist.json Error!", err)
 		return err
 	}
+
 	//本地缓存
 	//先备份
-	backupReslistFileName := fmt.Sprintf("%s/reslist_back.json", this.configHome)
-	utils.CopyFile(this.reslistPath, backupReslistFileName)
+	if this.IsPatch {
+		backupReslistFileName := fmt.Sprintf("%s/reslist_back.json", this.configHome)
+		utils.CopyFile(this.reslistPath, backupReslistFileName)
 
-	backupReslistFileName = fmt.Sprintf("%s/reslistInner_back.json", this.configHome)
-	utils.CopyFile(this.reslistInnerPath, backupReslistFileName)
+		err = utils.WriteFile(Bytes, this.reslistPath)
+		if err != nil {
+			LogError("Write reslist.json Error!", err)
+			return err
+		}
+	} else {
+		backupReslistFileName := fmt.Sprintf("%s/reslistInner_back.json", this.configHome)
+		utils.CopyFile(this.reslistInnerPath, backupReslistFileName)
 
-	err = utils.WriteFile(Bytes, this.reslistInnerPath)
-	if err != nil {
-		LogError("Write reslist.json Error!", err)
-		return err
-	}
-
-	if !this.IsPatch {
+		err = utils.WriteFile(Bytes, this.reslistInnerPath)
+		if err != nil {
+			LogError("Write reslist.json Error!", err)
+			return err
+		}
+		//内网版本直接返回
 		return nil
 	}
-	err = utils.WriteFile(Bytes, this.reslistPath)
-	if err != nil {
-		LogError("Write reslist.json Error!", err)
-		return err
-	}
 
+	//修改pakversion
 	Bytes, err1 := this.PakVersionData.MarshalJSON()
 	if err1 != nil {
 		LogError("Read Json Data Error!", err)

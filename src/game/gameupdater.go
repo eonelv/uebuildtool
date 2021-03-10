@@ -54,6 +54,9 @@ const (
 	UBULK_EXT  string = ".ubulk"
 	JSON_EXT   string = ".json"
 	LUA_EXT    string = ".lua"
+	EXE_EXT    string = ".exe"
+	IPA_EXT    string = ".ipa"
+	APK_EXT    string = ".apk"
 )
 
 type SMD5 struct {
@@ -310,7 +313,7 @@ func (this *GameUpdater) zipSpPackage() bool {
 	if this.checkAvalibleZipFile(this.config.ZipSourcePath) != 0 {
 		err := Zip(this.config.ZipSourcePath, this.outZipFileName)
 		if err != nil {
-			this.result |= 0x04
+			this.result |= RESULT_ERROR_CODE_ZIP
 			return false
 		}
 	} else {
@@ -597,8 +600,7 @@ func (this *GameUpdater) merge(oldJson *simplejson.Json) map[string]*SMD5 {
 		NewMD5 := this.newMD5Data[Key]
 		if OldMD5 != NewMD5.md5 {
 			ResultList[Key] = NewMD5
-			tempMd5 := utils.CalcFileMD5(this.config.CookedPath + "/" + Key)
-			LogDebug("MD5 is diffrent, Key=", Key, "Old=", OldMD5, "New=", NewMD5.md5, "Act=", tempMd5)
+			LogDebug("MD5 is diffrent, Key=", Key, "Old=", OldMD5, "New=", NewMD5.md5)
 			oldJson.Set(Key, NewMD5.md5)
 		}
 	}
@@ -794,94 +796,70 @@ func (this *GameUpdater) buildApp() bool {
 
 	LogInfo("**********Begin buildApp**********")
 	var tempBuildFile string = fmt.Sprintf("%s/TempBuild.cmd", this.config.BuilderHome)
-	var achieveDir string
+
+	//应用程序生成的根目录, 与参数-archivedirectory指定的目录可能不相同
+	//Android是TargetPlarform_Cookflavor
+	tempTargetPlatform := this.config.GetTargetPlatform()
+	achieveDir := fmt.Sprintf("%s/%s", this.config.OutputPath, tempTargetPlatform)
 
 	defer os.Remove(tempBuildFile)
 
-	if this.config.GetTargetPlatform() == "Android" {
-		achieveDir = fmt.Sprintf("%s/%s_%s", this.config.OutputPath, this.config.GetTargetPlatform(), this.config.GetCookflavor())
+	a1 := fmt.Sprintf("-ScriptsForProject=%s/%s.uproject", this.config.ProjectHomePath, this.config.ProjectName)
+	a2 := "BuildCookRun"
+	a3 := fmt.Sprintf("-project=%s/%s.uproject", this.config.ProjectHomePath, this.config.ProjectName)
+	a4 := fmt.Sprintf("-archivedirectory=%s", this.config.OutputPath)
+	a5 := ""
 
-		a1 := fmt.Sprintf("-ScriptsForProject=%s/%s.uproject", this.config.ProjectHomePath, this.config.ProjectName)
-		a2 := "BuildCookRun"
-		a3 := fmt.Sprintf("-project=%s/%s.uproject", this.config.ProjectHomePath, this.config.ProjectName)
-		a4 := fmt.Sprintf("-archivedirectory=%s", this.config.OutputPath)
-
-		a5 := fmt.Sprintf("-cookflavor=%s", this.config.GetCookflavor())
-		var a6 string
-		if !this.config.IsRelease {
-			a6 = "-clientconfig=DebugGame"
-		} else {
-			a6 = "-clientconfig=Shipping"
-		}
-
-		a7 := fmt.Sprintf(`-ue4exe="%s"`, this.config.UE_EXE)
-		a8 := fmt.Sprintf("-targetplatform=%s", this.config.GetTargetPlatform())
-		var argAll []string
-		argAll = append(argAll, a1)
-		argAll = append(argAll, a2)
-		argAll = append(argAll, a3)
-		argAll = append(argAll, a4)
-		argAll = append(argAll, a5)
-		argAll = append(argAll, a6)
-		argAll = append(argAll, a7)
-		argAll = append(argAll, a8)
-
-		argAll = append(argAll, "-nocompileeditor", "-nop4", "-cook",
-			"-stage", "-archive", "-package", "-compressed",
-			"-SkipCookingEditorContent",
-			"-pak", "-prereqs", "-nodebuginfo", "-build",
-			"-utf8output", "-compile")
-		var cmdString = "\"" + this.config.AutomationTool + "\""
-		for _, a := range argAll {
-			cmdString += " "
-			cmdString += a
-		}
-		utils.WriteFile([]byte(cmdString), tempBuildFile)
+	a6 := ""
+	if !this.config.IsRelease {
+		a6 = "-clientconfig=DebugGame"
 	} else {
-		achieveDir = fmt.Sprintf("%s/%s", this.config.OutputPath, this.config.GetTargetPlatform())
-
-		a1 := fmt.Sprintf("-ScriptsForProject=%s/%s.uproject", this.config.ProjectHomePath, this.config.ProjectName)
-		a2 := "BuildCookRun"
-		a3 := fmt.Sprintf("-project=%s/%s.uproject", this.config.ProjectHomePath, this.config.ProjectName)
-		a4 := fmt.Sprintf("-archivedirectory=%s", this.config.OutputPath)
-
-		var a5 string
-		if !this.config.IsRelease {
-			a5 = "-clientconfig=DebugGame"
-		} else {
-			a5 = "-clientconfig=Shipping"
-		}
-
-		a6 := fmt.Sprintf(`-ue4exe="%s"`, this.config.UE_EXE)
-		a7 := fmt.Sprintf("-targetplatform=%s", this.config.GetTargetPlatform())
-
-		var argAll []string
-		argAll = append(argAll, a1)
-		argAll = append(argAll, a2)
-		argAll = append(argAll, a3)
-		argAll = append(argAll, a4)
-		argAll = append(argAll, a5)
-		argAll = append(argAll, a6)
-		argAll = append(argAll, a7)
-		argAll = append(argAll, "-nocompileeditor", "-nop4", "-cook",
-			"-stage", "-archive", "-package", "-compressed",
-			"-SkipCookingEditorContent",
-			"-pak", "-prereqs", "-nodebuginfo", "-build",
-			"-utf8output", "-compile")
-		var cmdString = "\"" + this.config.AutomationTool + "\""
-		for _, a := range argAll {
-			cmdString += " "
-			cmdString += a
-		}
-		utils.WriteFile([]byte(cmdString), tempBuildFile)
+		a6 = "-clientconfig=Shipping"
 	}
-	LogDebug("waitting Remove ", achieveDir)
+
+	a7 := fmt.Sprintf(`-ue4exe="%s"`, this.config.UE_EXE)
+	a8 := fmt.Sprintf("-targetplatform=%s", tempTargetPlatform)
+
+	var fixedParams = []string{"-nocompileeditor", "-nop4", "-cook",
+		"-stage", "-archive", "-package", "-compressed",
+		"-SkipCookingEditorContent",
+		"-pak", "-prereqs", "-nodebuginfo", "-build",
+		"-utf8output", "-compile"}
+	var argAll []string
+
+	if tempTargetPlatform == Android {
+		achieveDir = fmt.Sprintf("%s/%s_%s", this.config.OutputPath, tempTargetPlatform, this.config.GetCookflavor())
+		a5 = fmt.Sprintf("-cookflavor=%s", this.config.GetCookflavor())
+	} else {
+		a4 = fmt.Sprintf("-archivedirectory=%s", achieveDir)
+	}
+
+	argAll = append(argAll, a1)
+	argAll = append(argAll, a2)
+	argAll = append(argAll, a3)
+	argAll = append(argAll, a4)
+	argAll = append(argAll, a5)
+	argAll = append(argAll, a6)
+	argAll = append(argAll, a7)
+	argAll = append(argAll, a8)
+
+	argAll = append(argAll, fixedParams...)
+	var cmdString = "\"" + this.config.AutomationTool + "\""
+	for _, a := range argAll {
+		if a == "" {
+			continue
+		}
+		cmdString += " "
+		cmdString += a
+	}
+	utils.WriteFile([]byte(cmdString), tempBuildFile)
+
 	defer os.RemoveAll(achieveDir)
 	err := ExecApp(tempBuildFile)
 	if err != nil {
 		LogError("Build App failed.", err.Error())
 	}
-	zipFilePath := fmt.Sprintf("%s/%s", this.config.OutputPath, this.today)
+	targetZipFilePath := fmt.Sprintf("%s/%s", this.config.OutputPath, this.today)
 
 	rd, err := ioutil.ReadDir(achieveDir)
 	if err != nil {
@@ -890,26 +868,12 @@ func (this *GameUpdater) buildApp() bool {
 		LogInfo("**********buildApp Failed!**********")
 		return false
 	}
-	this.outAppFileName = ""
-	for _, fi := range rd {
-		if fi.IsDir() {
-			continue
-		}
-		name := fi.Name()
-		if strings.Contains(name, ".apk") || strings.Contains(name, ".ipa") {
-			name = strings.ReplaceAll(name, "-IOS", "")
-			name = strings.ReplaceAll(name, "-Android", "")
-			name = strings.ReplaceAll(name, "-Shipping", "")
-			name = strings.ReplaceAll(name, "DebugGame", "Debug")
-			index := strings.LastIndex(name, ".")
 
-			prefixPatch := ""
-			if this.config.IsPatch {
-				prefixPatch = "sp_"
-			}
-			this.outAppFileName = fmt.Sprintf("%s/%s%s_v%d.%s", zipFilePath, prefixPatch, name[:index], this.version, name[index+1:])
-			utils.CopyFile(achieveDir+"/"+fi.Name(), this.outAppFileName)
-		}
+	this.outAppFileName = ""
+	if this.config.GetTargetPlatform() == Win64 {
+		this.copyWinPackage(rd, targetZipFilePath, achieveDir, achieveDir)
+	} else {
+		this.copyApp(rd, targetZipFilePath, achieveDir)
 	}
 
 	if ok, _ := utils.PathExists(this.outAppFileName); ok {
@@ -920,6 +884,72 @@ func (this *GameUpdater) buildApp() bool {
 	}
 
 	LogInfo("**********buildApp Complete!**********")
+	return false
+}
+
+func (this *GameUpdater) copyApp(rd []os.FileInfo, targetZipFilePath string, parentDir string) bool {
+	for _, fi := range rd {
+		if fi.IsDir() {
+			parentDir = parentDir + "/" + fi.Name()
+			folders, _ := ioutil.ReadDir(parentDir)
+			ok := this.copyApp(folders, targetZipFilePath, parentDir)
+			if ok {
+				return true
+			}
+			continue
+		}
+
+		name := fi.Name()
+		LogInfo("**********复制apk or ipa**********", name)
+		if strings.Contains(name, APK_EXT) || strings.Contains(name, IPA_EXT) {
+			name = strings.ReplaceAll(name, "-IOS", "")
+			name = strings.ReplaceAll(name, "-Android", "")
+			name = strings.ReplaceAll(name, "-Shipping", "")
+			name = strings.ReplaceAll(name, "DebugGame", "Debug")
+			index := strings.LastIndex(name, ".")
+
+			prefixPatch := ""
+			if this.config.IsPatch {
+				prefixPatch = "sp_"
+			}
+			this.outAppFileName = fmt.Sprintf("%s/%s%s_v%d.%s", targetZipFilePath, prefixPatch, name[:index], this.version, name[index+1:])
+			utils.CopyFile(parentDir+"/"+fi.Name(), this.outAppFileName)
+			return true
+		}
+	}
+	return false
+}
+func (this *GameUpdater) copyWinPackage(rd []os.FileInfo, zipFilePath string, achieveDir string, parentDir string) bool {
+	for _, fi := range rd {
+		if fi.IsDir() {
+			parentDir = parentDir + "/" + fi.Name()
+			folders, _ := ioutil.ReadDir(parentDir)
+			ok := this.copyWinPackage(folders, zipFilePath, achieveDir, parentDir)
+			if ok {
+				return true
+			}
+			continue
+		}
+
+		name := fi.Name()
+		if strings.Contains(name, EXE_EXT) {
+			prefixPatch := ""
+			if this.config.IsPatch {
+				prefixPatch = "sp_"
+			}
+			this.outAppFileName = fmt.Sprintf("%s/%s%s_v%d.zip", zipFilePath, prefixPatch, "WinGame", this.version)
+
+			tempExePath := achieveDir + "/" + WinNoEditor
+			if this.checkAvalibleZipFile(tempExePath) != 0 {
+				err := Zip(tempExePath, this.outAppFileName)
+				if err != nil {
+					this.result |= RESULT_ERROR_CODE_APP
+					return false
+				}
+			}
+			return true
+		}
+	}
 	return false
 }
 
