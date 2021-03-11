@@ -2,6 +2,7 @@
 package main
 
 import (
+	. "def"
 	"fmt"
 	"mynet"
 	"net/http"
@@ -26,8 +27,14 @@ var Sender *TCPSender
 
 var localIP string
 
+func init() {
+	utils.SetCmdTitleAndColor(APP_TITLE+"-Version:"+APP_VERSION, 9)
+	LogInfo(fmt.Sprintf(AppVersionMessage, APP_TITLE, APP_VERSION))
+}
+
 func main() {
 	runtime.GOMAXPROCS(runtime.NumCPU())
+
 	//var gameUpdater *game.GameUpdater = &game.GameUpdater{}
 	//gameUpdater.DoUpdate()
 	localIP, _ = utils.GetLocalIP()

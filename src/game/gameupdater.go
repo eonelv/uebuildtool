@@ -127,6 +127,7 @@ func (this *GameUpdater) DoUpdate() {
 	}()
 	defer this.sendReport()
 	defer this.clear()
+	defer utils.SetCmdTitle(APP_TITLE + "-Version:" + APP_VERSION)
 
 	LogInfo("")
 	LogInfo("---------------------------------")
